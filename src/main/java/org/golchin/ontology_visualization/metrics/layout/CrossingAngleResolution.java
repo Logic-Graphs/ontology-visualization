@@ -1,10 +1,10 @@
-package org.golchin.ontology_visualization.aesthetics;
+package org.golchin.ontology_visualization.metrics.layout;
 
 import java.awt.geom.Line2D;
 import java.awt.geom.Point2D;
 import java.util.Comparator;
 
-public class CrossingAngleResolution extends CrossingsAesthetics {
+public class CrossingAngleResolution extends CrossingsLayoutMetric {
 
     static double scalarProduct(Point2D v1, Point2D v2) {
         double len1 = v1.distance(0, 0);

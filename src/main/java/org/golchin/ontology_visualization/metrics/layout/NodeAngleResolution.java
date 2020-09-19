@@ -1,4 +1,4 @@
-package org.golchin.ontology_visualization.aesthetics;
+package org.golchin.ontology_visualization.metrics.layout;
 
 import org.graphstream.graph.Graph;
 import org.graphstream.graph.Node;
@@ -11,7 +11,7 @@ import java.util.stream.Collectors;
 
 import static java.lang.Math.PI;
 
-public class NodeAngleResolution implements Aesthetics {
+public class NodeAngleResolution implements LayoutMetric {
     @Override
     public double calculate(Graph graph, Function<Node, Point2D> vertexToPoint) {
         double minAngle = Double.POSITIVE_INFINITY;

@@ -1,4 +1,4 @@
-package org.golchin.ontology_visualization.aesthetics;
+package org.golchin.ontology_visualization.metrics.layout;
 
 import org.graphstream.graph.Graph;
 

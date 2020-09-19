@@ -1,4 +1,4 @@
-package org.golchin.ontology_visualization.aesthetics;
+package org.golchin.ontology_visualization.metrics.layout;
 
 import org.graphstream.graph.Edge;
 import org.graphstream.graph.Graph;
@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class EdgeLengthStd implements Aesthetics {
+public class EdgeLengthStd implements LayoutMetric {
     @Override
     public double calculate(Graph graph, Function<Node, Point2D> vertexToPoint) {
         double sumOfSquares = 0.;

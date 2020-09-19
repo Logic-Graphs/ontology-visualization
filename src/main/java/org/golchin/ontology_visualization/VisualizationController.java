@@ -4,7 +4,7 @@ import javafx.fxml.FXML;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.stage.Stage;
-import org.golchin.ontology_visualization.aesthetics.*;
+import org.golchin.ontology_visualization.metrics.layout.*;
 import org.graphstream.graph.Graph;
 import org.graphstream.ui.fx_viewer.FxViewPanel;
 import org.graphstream.ui.fx_viewer.FxViewer;
@@ -26,7 +26,7 @@ public class VisualizationController {
     public static final List<Supplier<Layout>> POSSIBLE_LAYOUTS =
             Arrays.asList(LinLog::new, SpringBox::new);
 
-    public static final Map<String, Aesthetics> METRICS_BY_NAME = new LinkedHashMap<>();
+    public static final Map<String, LayoutMetric> METRICS_BY_NAME = new LinkedHashMap<>();
     private static final String STYLESHEET = "edge { text-visibility-mode: hidden; text-visibility: 0.5;  }" +
             " node { size-mode: fit; text-alignment: center; fill-color: green; shape: box; }";
 
@@ -67,9 +67,9 @@ public class VisualizationController {
         service.setOnSucceeded(e -> {
             Graph graph = (Graph) e.getSource().getValue();
             String metricName = metricChoiceBox.getSelectionModel().selectedItemProperty().getValue();
-            Aesthetics aesthetics = METRICS_BY_NAME.get(metricName);
+            LayoutMetric layoutMetric = METRICS_BY_NAME.get(metricName);
 
-            LayoutChooser layoutChooser = new LayoutChooser(graph, POSSIBLE_LAYOUTS, 5, aesthetics);
+            LayoutChooser layoutChooser = new LayoutChooser(graph, POSSIBLE_LAYOUTS, 5, layoutMetric);
             LayoutChooserService layoutChooserService = new LayoutChooserService(layoutChooser);
             layoutChooserService.start();
             layoutChooserService.setOnSucceeded(stateEvent -> {

@@ -1,4 +1,4 @@
-package org.golchin.ontology_visualization.aesthetics;
+package org.golchin.ontology_visualization.metrics.layout;
 
 import org.graphstream.graph.Edge;
 import org.graphstream.graph.Graph;
@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public abstract class CrossingsAesthetics implements Aesthetics {
+public abstract class CrossingsLayoutMetric implements LayoutMetric {
     @Override
     public double calculate(Graph graph, Function<Node, Point2D> vertexToPoint) {
         List<Edge> edgeList = graph.edges().collect(Collectors.toList());

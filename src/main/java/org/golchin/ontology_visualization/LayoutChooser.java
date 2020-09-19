@@ -1,7 +1,7 @@
 package org.golchin.ontology_visualization;
 
 import lombok.AllArgsConstructor;
-import org.golchin.ontology_visualization.aesthetics.Aesthetics;
+import org.golchin.ontology_visualization.metrics.layout.LayoutMetric;
 import org.graphstream.graph.Edge;
 import org.graphstream.graph.Graph;
 import org.graphstream.graph.Node;
@@ -29,7 +29,7 @@ public class LayoutChooser {
     private final Graph graph;
     private final List<Supplier<Layout>> possibleLayouts;
     private final int nTrials;
-    private final Aesthetics aesthetics;
+    private final LayoutMetric layoutMetric;
 
     public static Graph layoutGraph(Graph graph, Layout layout) {
         MultiGraph copy = new MultiGraph(UUID.randomUUID().toString());
@@ -58,7 +58,7 @@ public class LayoutChooser {
 
     public EvaluatedLayout chooseLayout() {
         List<EvaluatedLayout> evaluatedLayouts = new ArrayList<>();
-        Comparator<Double> comparator = aesthetics.getComparator();
+        Comparator<Double> comparator = layoutMetric.getComparator();
         Map<String, Double> variants = new LinkedHashMap<>();
         for (Supplier<Layout> possibleLayoutSupplier : possibleLayouts) {
             Graph bestLayout = null;
@@ -69,7 +69,7 @@ public class LayoutChooser {
                 Layout layout = possibleLayoutSupplier.get();
                 layoutName = layout.getLayoutAlgorithmName();
                 Graph layoutGraph = layoutGraph(graph, layout);
-                double curMetric = aesthetics.calculate(layoutGraph, NODE_POSITION_GETTER);
+                double curMetric = layoutMetric.calculate(layoutGraph, NODE_POSITION_GETTER);
                 sumMetrics += curMetric;
                 if (bestMetric == null || comparator.compare(bestMetric, curMetric) < 0) {
                     bestLayout = layoutGraph;

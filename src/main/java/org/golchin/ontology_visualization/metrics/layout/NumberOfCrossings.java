@@ -1,8 +1,8 @@
-package org.golchin.ontology_visualization.aesthetics;
+package org.golchin.ontology_visualization.metrics.layout;
 
 import java.awt.geom.Line2D;
 
-public class NumberOfCrossings extends CrossingsAesthetics {
+public class NumberOfCrossings extends CrossingsLayoutMetric {
     @Override
     protected double getInitialValue() {
         return 0;

@@ -1,4 +1,4 @@
-package org.golchin.ontology_visualization.aesthetics;
+package org.golchin.ontology_visualization.metrics.layout;
 
 import org.graphstream.graph.Graph;
 import org.graphstream.graph.Node;
@@ -11,7 +11,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class ShapeGraphSimilarity implements Aesthetics {
+public class ShapeGraphSimilarity implements LayoutMetric {
     private final int k;
 
     public ShapeGraphSimilarity(int k) {

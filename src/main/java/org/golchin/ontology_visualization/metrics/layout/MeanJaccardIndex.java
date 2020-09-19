@@ -1,4 +1,4 @@
-package org.golchin.ontology_visualization.aesthetics;
+package org.golchin.ontology_visualization.metrics.layout;
 
 import com.google.common.collect.Sets;
 import org.graphstream.graph.Edge;
