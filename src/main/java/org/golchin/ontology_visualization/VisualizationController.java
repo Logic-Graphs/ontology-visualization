@@ -27,6 +27,8 @@ public class VisualizationController {
             Arrays.asList(LinLog::new, SpringBox::new);
 
     public static final Map<String, Aesthetics> METRICS_BY_NAME = new LinkedHashMap<>();
+    private static final String STYLESHEET = "edge { text-visibility-mode: hidden; text-visibility: 0.5;  }" +
+            " node { size-mode: fit; text-alignment: center; fill-color: green; shape: box; }";
 
     static {
         METRICS_BY_NAME.put("Number of crossings", new NumberOfCrossings());
@@ -79,8 +81,7 @@ public class VisualizationController {
                         .collect(Collectors.joining("\n", "", "\nChose " + name));
                 log.setText(summary);
                 Graph layoutGraph = evaluatedLayout.getBestLayout();
-                layoutGraph.setAttribute("ui.stylesheet",
-                        "edge { text-visibility-mode: hidden; text-visibility: 0.5;  }");
+                layoutGraph.setAttribute("ui.stylesheet", STYLESHEET);
                 FxViewer fxViewer = new FxViewer(layoutGraph, Viewer.ThreadingModel.GRAPH_IN_ANOTHER_THREAD);
                 FxViewPanel panel = (FxViewPanel) fxViewer.addDefaultView(false);
                 View view = fxViewer.getDefaultView();
