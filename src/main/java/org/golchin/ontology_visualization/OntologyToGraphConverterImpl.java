@@ -1,6 +1,7 @@
 package org.golchin.ontology_visualization;
 
-import lombok.AllArgsConstructor;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import org.graphstream.graph.Edge;
 import org.graphstream.graph.Graph;
 import org.graphstream.graph.Node;
@@ -14,20 +15,45 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-@AllArgsConstructor
 public class OntologyToGraphConverterImpl implements OntologyToGraphConverter {
+    public static final Set<Boolean> BOOLEANS = ImmutableSet.of(Boolean.TRUE, Boolean.FALSE);
+    public static final Parameter<Boolean> MULTIPLY_DATATYPES =
+            new Parameter<>("multipleNodesForDatatype", BOOLEANS);
+    public static final Parameter<Boolean> MERGE_EQUIVALENT =
+            new Parameter<>("mergeEquivalentClasses", BOOLEANS);
     private final int minDegree;
+    /**
+     * If true, merge equivalent classes into one node, otherwise denote equivalence with undirected edges
+     */
+    private final boolean mergeEquivalentClasses;
+    /**
+     * If true, create a node for each occurrence of a datatype, otherwise a single one
+     */
+    private final boolean multipleNodesForDatatype;
+    private final Map<String, Object> parameterValues;
     private final AtomicInteger edgeCounter = new AtomicInteger();
     private final AtomicInteger nodeCounter = new AtomicInteger();
 
     public OntologyToGraphConverterImpl() {
-        this(0);
+        this(0, Collections.emptyMap());
+    }
+
+    public OntologyToGraphConverterImpl(int minDegree, Map<String, Object> parameterValues) {
+        this.minDegree = minDegree;
+        this.parameterValues = parameterValues;
+        mergeEquivalentClasses = (boolean) parameterValues.getOrDefault(MERGE_EQUIVALENT.getName(), true);
+        multipleNodesForDatatype = (boolean) parameterValues.getOrDefault(MULTIPLY_DATATYPES.getName(), true);
+    }
+
+    public OntologyToGraphConverterImpl(int minDegree, boolean mergeEquivalentClasses, boolean multipleNodesForDatatype) {
+        this(minDegree,
+                ImmutableMap.of(MERGE_EQUIVALENT.getName(), mergeEquivalentClasses, MULTIPLY_DATATYPES.getName(), multipleNodesForDatatype));
     }
 
     private void traverseEquivalentClasses(OWLOntology ontology,
-                                                  OWLClass initialClass,
-                                                  String id,
-                                                  Map<OWLObject, EquivalentClassesSet> owlObjectsToIds) {
+                                           OWLClass initialClass,
+                                           String id,
+                                           Map<OWLObject, EquivalentClassesSet> owlObjectsToIds) {
         if (owlObjectsToIds.containsKey(initialClass))
             return;
         EquivalentClassesSet classesSet = new EquivalentClassesSet(id);
@@ -90,7 +116,11 @@ public class OntologyToGraphConverterImpl implements OntologyToGraphConverter {
         }
         for (EquivalentClassesSet classesSet : new HashSet<>(owlObjectsToIds.values())) {
             if (classesSet.nodeIds.size() > 1) {
-                mergeEquivalentClasses(graph, classesSet);
+                if (mergeEquivalentClasses) {
+                    mergeEquivalentClasses(graph, classesSet);
+                } else {
+                    createEquivalenceEdges(graph, classesSet);
+                }
             }
         }
         List<Node> nodesToRemove = graph.nodes()
@@ -176,6 +206,20 @@ public class OntologyToGraphConverterImpl implements OntologyToGraphConverter {
         theNode.setAttribute("label", String.join("\n", labels));
     }
 
+    private void createEquivalenceEdges(Graph graph, EquivalentClassesSet equivalentClassesSet) {
+        List<Node> equivalentNodes = equivalentClassesSet.nodeIds.stream()
+                .map(graph::getNode)
+                .collect(Collectors.toList());
+        for (Node node : equivalentNodes) {
+            for (Node otherNode : equivalentNodes) {
+                if (node != otherNode) {
+                    Edge edge = graph.addEdge(getEdgeId(), node, otherNode);
+                    edge.setAttribute("label", "equivalent");
+                }
+            }
+        }
+    }
+
     private Edge copyEdge(Graph graph, Node theNode, String nodeId, Node node, Edge edge) {
         String sourceId = edge.getSourceNode().getId();
         String targetId = edge.getTargetNode().getId();
@@ -244,7 +288,7 @@ public class OntologyToGraphConverterImpl implements OntologyToGraphConverter {
     private String getOWLObjectId(OWLObject owlObject) {
         if (owlObject instanceof OWLNamedObject) {
             String id = ((OWLNamedObject) owlObject).getIRI().toString();
-            if (owlObject instanceof OWLDatatype) {
+            if (multipleNodesForDatatype && owlObject instanceof OWLDatatype) {
                 OWLDatatype datatype = (OWLDatatype) owlObject;
                 if (datatype.isBuiltIn()) {
                     return id + "_" + nodeCounter.getAndIncrement();
@@ -253,6 +297,11 @@ public class OntologyToGraphConverterImpl implements OntologyToGraphConverter {
             return id;
         }
         return owlObject.toString();
+    }
+
+    @Override
+    public Map<String, Object> getParameterValues() {
+        return parameterValues;
     }
 
     protected static class EquivalentClassesSet {

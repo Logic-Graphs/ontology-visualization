@@ -3,7 +3,7 @@ package org.golchin.ontology_visualization;
 import javafx.concurrent.Service;
 import javafx.concurrent.Task;
 import lombok.AllArgsConstructor;
-import org.graphstream.graph.Graph;
+import org.golchin.ontology_visualization.metrics.GraphMetric;
 import org.semanticweb.owlapi.apibinding.OWLManager;
 import org.semanticweb.owlapi.model.IRI;
 import org.semanticweb.owlapi.model.OWLOntology;
@@ -11,18 +11,20 @@ import org.semanticweb.owlapi.model.OWLOntologyManager;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Collection;
 
 @AllArgsConstructor
-public class OntologyLoaderService extends Service<Graph> {
+public class OntologyLoaderService extends Service<EvaluatedGraph> {
     private final String url;
-    private final OntologyToGraphConverter converter;
+    private final GraphMetric metric;
+    private final Collection<? extends OntologyToGraphConverter> converters;
     private final OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
 
     @Override
-    protected Task<Graph> createTask() {
-        return new Task<Graph>() {
+    protected Task<EvaluatedGraph> createTask() {
+        return new Task<EvaluatedGraph>() {
             @Override
-            protected Graph call() throws Exception {
+            protected EvaluatedGraph call() throws Exception {
                 try {
                     new URL(url);
                 } catch (MalformedURLException e) {
@@ -30,7 +32,7 @@ public class OntologyLoaderService extends Service<Graph> {
                 }
                 IRI documentIRI = IRI.create(url);
                 OWLOntology ontology = manager.loadOntologyFromOntologyDocument(documentIRI);
-                return converter.convert(ontology);
+                return new GraphChooser(ontology, converters, metric).choose();
             }
         };
     }
