@@ -4,7 +4,9 @@ import com.google.common.collect.ImmutableMap;
 import javafx.fxml.FXML;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 import org.golchin.ontology_visualization.metrics.BaimuratovMetric;
 import org.golchin.ontology_visualization.metrics.DegreeEntropyMetric;
 import org.golchin.ontology_visualization.metrics.GraphMetric;
@@ -19,6 +21,7 @@ import org.graphstream.ui.view.View;
 import org.graphstream.ui.view.Viewer;
 import org.graphstream.ui.view.camera.Camera;
 
+import java.io.File;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -44,6 +47,7 @@ public class VisualizationController {
     private static final Map<String, GraphMetric> GRAPH_METRICS_BY_NAME = ImmutableMap.of(
             "Entropy", new DegreeEntropyMetric(),
             "Baimuratov et al.", new BaimuratovMetric());
+    private Graph graph;
 
     @FXML
     private TextField url;
@@ -60,15 +64,9 @@ public class VisualizationController {
     @FXML
     private Spinner<Integer> minDegree;
 
-    @FXML
-    public void initialize() {
-        url.setText("http://xmlns.com/foaf/spec/index.rdf");
-        minDegree.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 100));
-        metricChoiceBox.getItems().addAll(METRICS_BY_NAME.keySet());
-        metricChoiceBox.getSelectionModel().select(0);
-        graphMetricChoiceBox.getItems().addAll(GRAPH_METRICS_BY_NAME.keySet());
-        graphMetricChoiceBox.getSelectionModel().select(0);
-    }
+    private final GraphImportService importService = new GraphImportService();
+
+    private final FileChooser fileChooser = new FileChooser();
 
     private static Collection<? extends OntologyToGraphConverter> getConvertersWithParameterCombinations(List<Parameter<?>> parameters, int degree) {
         return Parameter.getParameterCombinations(parameters)
@@ -78,7 +76,36 @@ public class VisualizationController {
     }
 
     @FXML
-    public void visualize() {
+    public void initialize() {
+        url.setText("http://xmlns.com/foaf/spec/index.rdf");
+        minDegree.setValueFactory(new SpinnerValueFactory.IntegerSpinnerValueFactory(0, 100));
+        metricChoiceBox.getItems().addAll(METRICS_BY_NAME.keySet());
+        metricChoiceBox.getSelectionModel().select(0);
+        graphMetricChoiceBox.getItems().addAll(GRAPH_METRICS_BY_NAME.keySet());
+        graphMetricChoiceBox.getSelectionModel().select(0);
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Graphviz format", "*.dot"));
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Any file", "*"));
+    }
+
+    @FXML
+    public void importGraph() {
+        Window window = log.getScene().getWindow();
+        File file = fileChooser.showOpenDialog(window);
+        importService.setFileName(file.toString());
+        importService.setOnSucceeded(event ->
+                graph = (Graph) event.getSource().getValue());
+        importService.setOnFailed(event -> {
+            Throwable exception = event.getSource().getException();
+            if (exception != null) {
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Not a valid DOT file");
+                alert.show();
+            }
+        });
+        importService.restart();
+    }
+
+    @FXML
+    public void importOntology() {
         log.setText("");
         int degree = minDegree.getValue() == null ? 0 : minDegree.getValue();
         List<Parameter<?>> parameters = Arrays.asList(OntologyToGraphConverterImpl.MERGE_EQUIVALENT, OntologyToGraphConverterImpl.MULTIPLY_DATATYPES);
@@ -89,38 +116,52 @@ public class VisualizationController {
         OntologyLoaderService service = new OntologyLoaderService(url.getText(), graphMetric, converters);
         service.setOnSucceeded(e -> {
             EvaluatedGraph evaluatedGraph = (EvaluatedGraph) e.getSource().getValue();
-            Graph graph = evaluatedGraph.getGraph();
-            Map<Map<String, Object>, Double> metricValuesByParameters = evaluatedGraph.getMetricValuesByParameters();
-            for (Map.Entry<Map<String, Object>, Double> entry : metricValuesByParameters.entrySet()) {
-                appendToLog("Value of metric with parameters " + entry.getKey() +
-                        ": " + entry.getValue());
-            }
-            appendToLog("Chose " + evaluatedGraph.getBestParameters());
-            String metricName = metricChoiceBox.getSelectionModel().selectedItemProperty().getValue();
-            LayoutMetric layoutMetric = METRICS_BY_NAME.get(metricName);
-
-            LayoutChooser layoutChooser = new LayoutChooser(graph, POSSIBLE_LAYOUTS, 5, layoutMetric);
-            LayoutChooserService layoutChooserService = new LayoutChooserService(layoutChooser);
-            layoutChooserService.start();
-            appendToLog("Choosing best layout with metric " + metricName + "...");
-            layoutChooserService.setOnSucceeded(stateEvent -> {
-                EvaluatedLayout evaluatedLayout = (EvaluatedLayout) stateEvent.getSource().getValue();
-                String name = evaluatedLayout.getName();
-                String summary = evaluatedLayout.getVariants().entrySet()
-                        .stream()
-                        .map(metricNameToValue -> "Average value of metric for " + metricNameToValue.getKey() +
-                                        ": " + metricNameToValue.getValue())
-                        .collect(joining("\n", "", "\nChose " + name));
-                appendToLog(summary);
-                Graph layoutGraph = evaluatedLayout.getBestLayout();
-                visualize(layoutGraph);
-            });
-            layoutChooserService.setOnFailed(workerStateEvent ->
-                    log.setText(workerStateEvent.getSource().getException().getMessage()));
+            logParameterChoice(evaluatedGraph);
+            graph = evaluatedGraph.getGraph();
         });
         service.setOnFailed(e -> log.setText(e.getSource().getException().getMessage()));
         service.start();
         appendToLog("Choosing best graph representation with metric " + graphMetricName + "...");
+    }
+
+    @FXML
+    public void visualize() {
+        if (graph != null) {
+            chooseLayoutAndVisualize(graph);
+        }
+    }
+
+    private void logParameterChoice(EvaluatedGraph evaluatedGraph) {
+        Map<Map<String, Object>, Double> metricValuesByParameters = evaluatedGraph.getMetricValuesByParameters();
+        for (Map.Entry<Map<String, Object>, Double> entry : metricValuesByParameters.entrySet()) {
+            appendToLog("Value of metric with parameters " + entry.getKey() +
+                    ": " + entry.getValue());
+        }
+        appendToLog("Chose " + evaluatedGraph.getBestParameters());
+    }
+
+    private void chooseLayoutAndVisualize(Graph graph) {
+        String metricName = metricChoiceBox.getSelectionModel().selectedItemProperty().getValue();
+        LayoutMetric layoutMetric = METRICS_BY_NAME.get(metricName);
+
+        LayoutChooser layoutChooser = new LayoutChooser(graph, POSSIBLE_LAYOUTS, 5, layoutMetric);
+        LayoutChooserService layoutChooserService = new LayoutChooserService(layoutChooser);
+        layoutChooserService.start();
+        appendToLog("Choosing best layout with metric " + metricName + "...");
+        layoutChooserService.setOnSucceeded(stateEvent -> {
+            EvaluatedLayout evaluatedLayout = (EvaluatedLayout) stateEvent.getSource().getValue();
+            String name = evaluatedLayout.getName();
+            String summary = evaluatedLayout.getVariants().entrySet()
+                    .stream()
+                    .map(metricNameToValue -> "Average value of metric for " + metricNameToValue.getKey() +
+                                    ": " + metricNameToValue.getValue())
+                    .collect(joining("\n", "", "\nChose " + name));
+            appendToLog(summary);
+            Graph layoutGraph = evaluatedLayout.getBestLayout();
+            visualize(layoutGraph);
+        });
+        layoutChooserService.setOnFailed(workerStateEvent ->
+                log.setText(workerStateEvent.getSource().getException().getMessage()));
     }
 
     private void visualize(Graph layoutGraph) {
