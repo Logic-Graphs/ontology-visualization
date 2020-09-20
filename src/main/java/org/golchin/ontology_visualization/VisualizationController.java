@@ -33,8 +33,9 @@ public class VisualizationController {
             Arrays.asList(LinLog::new, SpringBox::new);
 
     public static final Map<String, LayoutMetric> METRICS_BY_NAME = new LinkedHashMap<>();
-    private static final String STYLESHEET = "edge { text-visibility-mode: hidden; text-visibility: 0.5;  }" +
-            " node { size-mode: fit; text-alignment: center; fill-color: green; shape: box; }";
+    public static final String EDGE_STYLESHEET = "edge { text-visibility-mode: hidden; text-visibility: 0.5;  }";
+    public static final String NODE_STYLESHEET = "node { size-mode: fit; text-alignment: center; fill-color: green; shape: box; }";
+    private static final String STYLESHEET = EDGE_STYLESHEET + " " + NODE_STYLESHEET;
 
     static {
         METRICS_BY_NAME.put("Number of crossings", new NumberOfCrossings());
@@ -68,6 +69,12 @@ public class VisualizationController {
 
     private final FileChooser fileChooser = new FileChooser();
 
+    private final GraphExportToImageService exportToImageService = new GraphExportToImageService();
+
+    private final FileChooser imageFileChooser = new FileChooser();
+
+    private Graph layoutGraph;
+
     private static Collection<? extends OntologyToGraphConverter> getConvertersWithParameterCombinations(List<Parameter<?>> parameters, int degree) {
         return Parameter.getParameterCombinations(parameters)
                 .stream()
@@ -85,6 +92,29 @@ public class VisualizationController {
         graphMetricChoiceBox.getSelectionModel().select(0);
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Graphviz format", "*.dot"));
         fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("Any file", "*"));
+        imageFileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("PNG image", "*.png"),
+                new FileChooser.ExtensionFilter("JPG image", "*.jpg"),
+                new FileChooser.ExtensionFilter("BMP image", "*.bmp")
+        );
+    }
+
+    @FXML
+    public void exportGraph() {
+        if (layoutGraph == null) {
+            // fixme maybe use SimpleObjectProperty for graph?
+            new Alert(Alert.AlertType.ERROR, "No layout has been computed").show();
+            return;
+        }
+        layoutGraph.setAttribute("ui.stylesheet", NODE_STYLESHEET);
+        File file = imageFileChooser.showSaveDialog(null);
+        exportToImageService.setFileName(file.getPath());
+        exportToImageService.setGraph(layoutGraph);
+        exportToImageService.setOnSucceeded(event ->
+                new Alert(Alert.AlertType.INFORMATION, "Visualization successfully exported").show());
+        exportToImageService.setOnFailed(event ->
+                new Alert(Alert.AlertType.ERROR, "Export failed").show());
+        exportToImageService.restart();
     }
 
     @FXML
@@ -127,7 +157,7 @@ public class VisualizationController {
     @FXML
     public void visualize() {
         if (graph != null) {
-            chooseLayoutAndVisualize(graph);
+            chooseLayoutAndVisualize(graph, true);
         }
     }
 
@@ -140,7 +170,7 @@ public class VisualizationController {
         appendToLog("Chose " + evaluatedGraph.getBestParameters());
     }
 
-    private void chooseLayoutAndVisualize(Graph graph) {
+    private void chooseLayoutAndVisualize(Graph graph, boolean shouldVisualize) {
         String metricName = metricChoiceBox.getSelectionModel().selectedItemProperty().getValue();
         LayoutMetric layoutMetric = METRICS_BY_NAME.get(metricName);
 
@@ -157,8 +187,9 @@ public class VisualizationController {
                                     ": " + metricNameToValue.getValue())
                     .collect(joining("\n", "", "\nChose " + name));
             appendToLog(summary);
-            Graph layoutGraph = evaluatedLayout.getBestLayout();
-            visualize(layoutGraph);
+            layoutGraph = evaluatedLayout.getBestLayout();
+            if (shouldVisualize)
+                visualize(layoutGraph);
         });
         layoutChooserService.setOnFailed(workerStateEvent ->
                 log.setText(workerStateEvent.getSource().getException().getMessage()));
