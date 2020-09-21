@@ -1,14 +1,17 @@
 package org.golchin.ontology_visualization;
 
+import guru.nidi.graphviz.attribute.Named;
+import guru.nidi.graphviz.model.Link;
+import guru.nidi.graphviz.model.MutableGraph;
+import guru.nidi.graphviz.model.MutableNode;
+import guru.nidi.graphviz.parse.Parser;
 import javafx.concurrent.Service;
 import javafx.concurrent.Task;
 import lombok.Setter;
-import org.graphstream.graph.Edge;
 import org.graphstream.graph.Graph;
 import org.graphstream.graph.implementations.MultiGraph;
-import org.graphstream.stream.file.FileSource;
-import org.graphstream.stream.file.FileSourceDOT;
 
+import java.io.File;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class GraphImportService extends Service<Graph> {
@@ -21,24 +24,22 @@ public class GraphImportService extends Service<Graph> {
         return new Task<Graph>() {
             @Override
             protected Graph call() throws Exception {
+                MutableGraph mutableGraph = new Parser().read(new File(fileName));
                 MultiGraph graph = new MultiGraph("g");
-                FileSource fileSource = new FileSourceDOT();
-                fileSource.addSink(graph);
-                try {
-                    fileSource.readAll(fileName);
-                } finally {
-                    fileSource.removeSink(graph);
+                for (MutableNode node : mutableGraph.nodes()) {
+                    Object label = node.get("label");
+                    graph.addNode(node.name().toString()).setAttribute("label", label);
                 }
-                graph.nodes().forEach(node -> node.setAttribute("label", node.getId()));
-                graph.edges().forEach(edge -> copyEdge(graph, edge));
+                for (Link link : mutableGraph.edges()) {
+                    Object label = link.get("label");
+                    Named from = link.from();
+                    Named to = link.to();
+                    graph.addEdge("edge_" + counter.getAndIncrement(), from.name().toString(), to.name().toString())
+                            .setAttribute("label", label);
+                }
                 return graph;
             }
         };
     }
 
-    private void copyEdge(Graph graph, Edge edge) {
-        Edge newEdge = graph.addEdge("edge_" + counter.getAndIncrement(), edge.getSourceNode(), edge.getTargetNode(), true);
-        newEdge.setAttribute("label", edge.getAttribute("label"));
-        graph.removeEdge(edge);
-    }
 }
