@@ -60,7 +60,8 @@
        <Menu mnemonicParsing="false" text="File">
          <items>
            <MenuItem mnemonicParsing="false" onAction="#importGraph" text="Import graph" />
-           <MenuItem mnemonicParsing="false" onAction="#exportGraph" text="Export to image" />
+           <MenuItem mnemonicParsing="false" onAction="#exportGraph" text="Export graph" />
+           <MenuItem mnemonicParsing="false" onAction="#exportToImage" text="Export to image" />
          </items>
        </Menu>
      </menus>

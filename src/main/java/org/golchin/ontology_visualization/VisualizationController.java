@@ -70,6 +70,8 @@ public class VisualizationController {
     private final FileChooser fileChooser = new FileChooser();
 
     private final GraphExportToImageService exportToImageService = new GraphExportToImageService();
+    
+    private final GraphExportToDOTService exportToDOTService = new GraphExportToDOTService();
 
     private final FileChooser imageFileChooser = new FileChooser();
 
@@ -100,21 +102,30 @@ public class VisualizationController {
     }
 
     @FXML
+    public void exportToImage() {
+        export(exportToImageService, imageFileChooser);
+    }
+
+
     public void exportGraph() {
+        export(exportToDOTService, fileChooser);
+    }
+
+    private void export(GraphExportService service, FileChooser chooser) {
         if (layoutGraph == null) {
             // fixme maybe use SimpleObjectProperty for graph?
             new Alert(Alert.AlertType.ERROR, "No layout has been computed").show();
             return;
         }
         layoutGraph.setAttribute("ui.stylesheet", NODE_STYLESHEET);
-        File file = imageFileChooser.showSaveDialog(null);
-        exportToImageService.setFileName(file.getPath());
-        exportToImageService.setGraph(layoutGraph);
-        exportToImageService.setOnSucceeded(event ->
+        File file = chooser.showSaveDialog(null);
+        service.setFileName(file.getPath());
+        service.setGraph(layoutGraph);
+        service.setOnSucceeded(event ->
                 new Alert(Alert.AlertType.INFORMATION, "Visualization successfully exported").show());
-        exportToImageService.setOnFailed(event ->
+        service.setOnFailed(event ->
                 new Alert(Alert.AlertType.ERROR, "Export failed").show());
-        exportToImageService.restart();
+        service.restart();
     }
 
     @FXML
