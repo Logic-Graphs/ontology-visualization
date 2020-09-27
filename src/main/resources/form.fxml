@@ -3,7 +3,7 @@
 <?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<GridPane fx:id="gridPane" hgap="20.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0" prefWidth="800.0" vgap="10.0" xmlns="http://javafx.com/javafx/10.0.2-internal" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.golchin.ontology_visualization.VisualizationController">
+<GridPane fx:id="gridPane" hgap="20.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="700.0" prefWidth="800.0" vgap="10.0" xmlns="http://javafx.com/javafx/10.0.2-internal" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.golchin.ontology_visualization.VisualizationController">
     <columnConstraints>
         <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="39.0" prefWidth="100.0" />
         <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="23.0" prefWidth="100.0" />
@@ -19,6 +19,8 @@
         <RowConstraints maxHeight="75.0" minHeight="10.0" prefHeight="75.0" vgrow="SOMETIMES" />
         <RowConstraints maxHeight="33.0" minHeight="10.0" prefHeight="16.0" vgrow="SOMETIMES" />
       <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="10.0" vgrow="SOMETIMES" />
+      <RowConstraints maxHeight="-Infinity" minHeight="30.0" prefHeight="30.0" vgrow="SOMETIMES" />
+      <RowConstraints maxHeight="-Infinity" minHeight="30.0" prefHeight="30.0" vgrow="SOMETIMES" />
       <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="40.0" vgrow="SOMETIMES" />
       <RowConstraints minHeight="10.0" prefHeight="100.0" vgrow="SOMETIMES" />
     </rowConstraints>
@@ -27,17 +29,7 @@
           <Insets />
         </GridPane.margin>
     </TextField>
-    <ChoiceBox fx:id="metricChoiceBox" prefHeight="26.0" prefWidth="195.0" GridPane.columnIndex="1" GridPane.rowIndex="8">
-        <GridPane.margin>
-          <Insets />
-        </GridPane.margin>
-    </ChoiceBox>
     <Label prefHeight="16.0" prefWidth="178.0" text="Ontology URL" GridPane.rowIndex="1">
-        <GridPane.margin>
-          <Insets left="20.0" />
-        </GridPane.margin>
-    </Label>
-    <Label prefHeight="16.0" prefWidth="178.0" text="Layout metric" GridPane.rowIndex="8">
         <GridPane.margin>
           <Insets left="20.0" />
         </GridPane.margin>
@@ -47,15 +39,13 @@
          <Insets left="20.0" />
       </GridPane.margin>
     </Label>
-    <Button alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onMouseClicked="#visualize" text="Visualize" GridPane.columnIndex="3" GridPane.halignment="CENTER" GridPane.rowIndex="8" />
+    <Button alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onMouseClicked="#visualize" text="Visualize" GridPane.columnIndex="3" GridPane.halignment="CENTER" GridPane.rowIndex="10" />
     <Spinner fx:id="minDegree" GridPane.columnIndex="1" GridPane.rowIndex="4" />
-    <TextArea fx:id="log" prefHeight="184.0" prefWidth="600.0" GridPane.columnSpan="4" GridPane.rowIndex="9">
+    <TextArea fx:id="log" prefHeight="184.0" prefWidth="600.0" GridPane.columnSpan="4" GridPane.rowIndex="11">
         <GridPane.margin>
             <Insets bottom="5.0" left="5.0" right="5.0" />
         </GridPane.margin>
     </TextArea>
-    <Label prefHeight="16.0" prefWidth="186.0" text="Graph metric" GridPane.columnIndex="1" GridPane.rowIndex="6" />
-    <ChoiceBox fx:id="graphMetricChoiceBox" prefHeight="26.0" prefWidth="195.0" GridPane.columnIndex="2" GridPane.rowIndex="6" />
    <MenuBar GridPane.columnSpan="4" GridPane.valignment="TOP">
      <menus>
        <Menu mnemonicParsing="false" text="File">
@@ -68,18 +58,20 @@
      </menus>
    </MenuBar>
    <Button alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onMouseClicked="#importOntology" text="Import" GridPane.columnIndex="3" GridPane.halignment="CENTER" GridPane.rowIndex="1" />
-   <ScrollPane fx:id="scrollPane" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.columnSpan="2" GridPane.rowIndex="5" />
    <RadioButton fx:id="explicitlySetParametersButton" mnemonicParsing="false" text="Explicitly set parameters" GridPane.rowIndex="5">
       <padding>
          <Insets left="20.0" />
       </padding>
    </RadioButton>
-   <RadioButton fx:id="chooseParametersButton" mnemonicParsing="false" text="Choose parameters automatically" GridPane.rowIndex="6">
+    <ScrollPane fx:id="scrollPane" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.columnSpan="2" GridPane.rowIndex="5" disable="${!explicitlySetParametersButton.selected}"/>
+    <RadioButton fx:id="chooseParametersButton" mnemonicParsing="false" text="Choose parameters automatically" GridPane.rowIndex="6" selected="true">
       <GridPane.margin>
          <Insets left="20.0" />
       </GridPane.margin>
    </RadioButton>
-   <Separator prefHeight="4.0" prefWidth="394.0" GridPane.columnSpan="4" GridPane.rowIndex="2">
+    <Label prefHeight="16.0" prefWidth="186.0" text="Graph metric" GridPane.columnIndex="1" GridPane.rowIndex="6" disable="${!chooseParametersButton.selected}"/>
+    <ChoiceBox fx:id="graphMetricChoiceBox" prefHeight="26.0" prefWidth="195.0" GridPane.columnIndex="2" GridPane.rowIndex="6" disable="${!chooseParametersButton.selected}"/>
+    <Separator prefHeight="4.0" prefWidth="394.0" GridPane.columnSpan="4" GridPane.rowIndex="2">
       <GridPane.margin>
          <Insets left="5.0" right="5.0" />
       </GridPane.margin>
@@ -94,4 +86,29 @@
          <Insets left="20.0" />
       </padding>
    </Label>
+   <Label text="Layout options" GridPane.rowIndex="8">
+      <GridPane.margin>
+         <Insets left="20.0" />
+      </GridPane.margin></Label>
+   <RadioButton fx:id="chooseLayoutAutomaticallyButton" selected="true" mnemonicParsing="false" text="Choose layout automatically" GridPane.rowIndex="10">
+      <padding>
+         <Insets left="20.0" />
+      </padding>
+   </RadioButton>
+    <Label prefHeight="16.0" prefWidth="178.0" text="Layout metric" GridPane.columnIndex="1" GridPane.rowIndex="10" disable="${!chooseLayoutAutomaticallyButton.selected}">
+        <GridPane.margin>
+            <Insets />
+        </GridPane.margin>
+    </Label>
+    <ChoiceBox fx:id="metricChoiceBox" prefHeight="26.0" prefWidth="195.0" GridPane.columnIndex="2" GridPane.rowIndex="10" disable="${!chooseLayoutAutomaticallyButton.selected}">
+        <GridPane.margin>
+            <Insets />
+        </GridPane.margin>
+    </ChoiceBox>
+    <RadioButton fx:id="usePredefinedAlgorithmButton" mnemonicParsing="false" text="Use predefined algorithm" GridPane.rowIndex="9">
+      <GridPane.margin>
+         <Insets left="20.0" />
+      </GridPane.margin>
+   </RadioButton>
+   <ChoiceBox fx:id="layoutAlgorithmChoiceBox" prefHeight="26.0" prefWidth="172.0" GridPane.columnIndex="1" GridPane.rowIndex="9" disable="${!usePredefinedAlgorithmButton.selected}"/>
 </GridPane>

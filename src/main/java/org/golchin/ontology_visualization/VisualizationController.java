@@ -11,6 +11,7 @@ import javafx.scene.layout.GridPane;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.Window;
+import javafx.util.StringConverter;
 import org.golchin.ontology_visualization.metrics.BaimuratovMetric;
 import org.golchin.ontology_visualization.metrics.DegreeEntropyMetric;
 import org.golchin.ontology_visualization.metrics.GraphMetric;
@@ -35,10 +36,13 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toMap;
 
 public class VisualizationController {
     public static final List<Supplier<Layout>> POSSIBLE_LAYOUTS =
             Arrays.asList(LinLog::new, SpringBox::new);
+    public static final Map<String, Supplier<Layout>> POSSIBLE_LAYOUTS_BY_NAME =
+            POSSIBLE_LAYOUTS.stream().collect(toMap((Supplier<Layout> l) -> l.get().getLayoutAlgorithmName(), l -> l));
 
     public static final Map<String, LayoutMetric> METRICS_BY_NAME = new LinkedHashMap<>();
     public static final String EDGE_STYLESHEET = "edge { text-visibility-mode: hidden; text-visibility: 0.5;  }";
@@ -60,7 +64,11 @@ public class VisualizationController {
 
     private Graph graph;
 
-    public final ExecutorService executorService = Executors.newSingleThreadExecutor();
+    public final ExecutorService executorService = Executors.newSingleThreadExecutor(r -> {
+        Thread thread = new Thread(r);
+        thread.setDaemon(true);
+        return thread;
+    });
 
     @FXML
     private TextField url;
@@ -98,6 +106,15 @@ public class VisualizationController {
     @FXML
     private RadioButton chooseParametersButton;
 
+    @FXML
+    private ChoiceBox<Layout> layoutAlgorithmChoiceBox;
+
+    @FXML
+    private RadioButton usePredefinedAlgorithmButton;
+
+    @FXML
+    private RadioButton chooseLayoutAutomaticallyButton;
+
     private final Map<Parameter<?>, ObjectProperty<?>> conversionParameterValues = new HashMap<>();
 
     private static Collection<? extends OntologyToGraphConverter> getConvertersWithParameterCombinations(List<Parameter<?>> parameters, int degree) {
@@ -123,19 +140,27 @@ public class VisualizationController {
                 new FileChooser.ExtensionFilter("BMP image", "*.bmp")
         );
         scrollPane.setContent(createParametersForm());
-        scrollPane.setDisable(true);
         ToggleGroup toggleGroup = new ToggleGroup();
         explicitlySetParametersButton.setToggleGroup(toggleGroup);
         chooseParametersButton.setToggleGroup(toggleGroup);
-        chooseParametersButton.setSelected(true);
-        explicitlySetParametersButton.setOnMouseClicked(event -> {
-            scrollPane.setDisable(false);
-            graphMetricChoiceBox.setDisable(true);
+        ToggleGroup layoutToggleGroup = new ToggleGroup();
+        usePredefinedAlgorithmButton.setToggleGroup(layoutToggleGroup);
+        chooseLayoutAutomaticallyButton.setToggleGroup(layoutToggleGroup);
+        layoutAlgorithmChoiceBox.setConverter(new StringConverter<Layout>() {
+            @Override
+            public String toString(Layout object) {
+                return object.getLayoutAlgorithmName();
+            }
+
+            @Override
+            public Layout fromString(String string) {
+                return POSSIBLE_LAYOUTS_BY_NAME.get(string).get();
+            }
         });
-        chooseParametersButton.setOnMouseClicked(__ -> {
-            scrollPane.setDisable(true);
-            graphMetricChoiceBox.setDisable(false);
-        });
+        for (Supplier<Layout> layout : POSSIBLE_LAYOUTS) {
+            layoutAlgorithmChoiceBox.getItems().add(layout.get());
+        }
+        layoutAlgorithmChoiceBox.getSelectionModel().selectFirst();
         log.setEditable(false);
     }
 
@@ -253,7 +278,7 @@ public class VisualizationController {
     @FXML
     public void visualize() {
         if (graph != null) {
-            chooseLayoutAndVisualize(graph, true);
+            chooseLayoutAndVisualize(graph);
         }
     }
 
@@ -274,7 +299,21 @@ public class VisualizationController {
                 .collect(joining(",", "{", "}"));
     }
 
-    private void chooseLayoutAndVisualize(Graph graph, boolean shouldVisualize) {
+    private void chooseLayoutAndVisualize(Graph graph) {
+        if (usePredefinedAlgorithmButton.isSelected()) {
+            Task<Graph> task = new Task<Graph>() {
+                @Override
+                protected Graph call() {
+                    return LayoutChooser.layoutGraph(graph, layoutAlgorithmChoiceBox.getValue());
+                }
+            };
+            executorService.submit(task);
+            task.setOnSucceeded(event -> {
+                layoutGraph = (Graph) event.getSource().getValue();
+                visualize(layoutGraph);
+            });
+            return;
+        }
         String metricName = metricChoiceBox.getSelectionModel().selectedItemProperty().getValue();
         LayoutMetric layoutMetric = METRICS_BY_NAME.get(metricName);
 
@@ -292,8 +331,7 @@ public class VisualizationController {
                     .collect(joining("\n", "", "\nChose " + name));
             appendToLog(summary);
             layoutGraph = evaluatedLayout.getBestLayout();
-            if (shouldVisualize)
-                visualize(layoutGraph);
+            visualize(layoutGraph);
         });
         layoutChooserService.setOnFailed(workerStateEvent ->
                 log.setText(workerStateEvent.getSource().getException().getMessage()));
