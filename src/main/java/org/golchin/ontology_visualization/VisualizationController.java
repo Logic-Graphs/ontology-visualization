@@ -1,9 +1,13 @@
 package org.golchin.ontology_visualization;
 
 import com.google.common.collect.ImmutableMap;
+import javafx.beans.property.ObjectProperty;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.layout.GridPane;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.Window;
@@ -12,6 +16,7 @@ import org.golchin.ontology_visualization.metrics.DegreeEntropyMetric;
 import org.golchin.ontology_visualization.metrics.GraphMetric;
 import org.golchin.ontology_visualization.metrics.layout.*;
 import org.graphstream.graph.Graph;
+import org.graphstream.graph.implementations.MultiGraph;
 import org.graphstream.ui.fx_viewer.FxViewPanel;
 import org.graphstream.ui.fx_viewer.FxViewer;
 import org.graphstream.ui.layout.Layout;
@@ -20,9 +25,12 @@ import org.graphstream.ui.layout.springbox.implementations.SpringBox;
 import org.graphstream.ui.view.View;
 import org.graphstream.ui.view.Viewer;
 import org.graphstream.ui.view.camera.Camera;
+import org.semanticweb.owlapi.model.OWLOntology;
 
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -36,7 +44,7 @@ public class VisualizationController {
     public static final String EDGE_STYLESHEET = "edge { text-visibility-mode: hidden; text-visibility: 0.5;  }";
     public static final String NODE_STYLESHEET = "node { size-mode: fit; text-alignment: center; fill-color: green; shape: box; }";
     private static final String STYLESHEET = EDGE_STYLESHEET + " " + NODE_STYLESHEET;
-
+    public static final List<Parameter<?>> PARAMETERS = Arrays.asList(OntologyToGraphConverterImpl.MERGE_EQUIVALENT, OntologyToGraphConverterImpl.MULTIPLY_DATATYPES);
     static {
         METRICS_BY_NAME.put("Number of crossings", new NumberOfCrossings());
         METRICS_BY_NAME.put("Crossings angle resolution", new CrossingAngleResolution());
@@ -45,10 +53,14 @@ public class VisualizationController {
         METRICS_BY_NAME.put("k-nearest neighbors shape graph similarity", new ShapeGraphSimilarity(5));
     }
 
+
     private static final Map<String, GraphMetric> GRAPH_METRICS_BY_NAME = ImmutableMap.of(
             "Entropy", new DegreeEntropyMetric(),
             "Baimuratov et al.", new BaimuratovMetric());
+
     private Graph graph;
+
+    public final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     @FXML
     private TextField url;
@@ -77,6 +89,17 @@ public class VisualizationController {
 
     private Graph layoutGraph;
 
+    @FXML
+    private ScrollPane scrollPane;
+
+    @FXML
+    private RadioButton explicitlySetParametersButton;
+
+    @FXML
+    private RadioButton chooseParametersButton;
+
+    private final Map<Parameter<?>, ObjectProperty<?>> conversionParameterValues = new HashMap<>();
+
     private static Collection<? extends OntologyToGraphConverter> getConvertersWithParameterCombinations(List<Parameter<?>> parameters, int degree) {
         return Parameter.getParameterCombinations(parameters)
                 .stream()
@@ -99,6 +122,39 @@ public class VisualizationController {
                 new FileChooser.ExtensionFilter("JPG image", "*.jpg"),
                 new FileChooser.ExtensionFilter("BMP image", "*.bmp")
         );
+        scrollPane.setContent(createParametersForm());
+        scrollPane.setDisable(true);
+        ToggleGroup toggleGroup = new ToggleGroup();
+        explicitlySetParametersButton.setToggleGroup(toggleGroup);
+        chooseParametersButton.setToggleGroup(toggleGroup);
+        chooseParametersButton.setSelected(true);
+        explicitlySetParametersButton.setOnMouseClicked(event -> {
+            scrollPane.setDisable(false);
+            graphMetricChoiceBox.setDisable(true);
+        });
+        chooseParametersButton.setOnMouseClicked(__ -> {
+            scrollPane.setDisable(true);
+            graphMetricChoiceBox.setDisable(false);
+        });
+        log.setEditable(false);
+    }
+
+    private GridPane createParametersForm() {
+        GridPane gridPane = new GridPane();
+        gridPane.setHgap(20);
+        gridPane.setVgap(20);
+        for (int i = 0; i < PARAMETERS.size(); i++) {
+            Parameter<?> parameter = PARAMETERS.get(i);
+            Label label = new Label(parameter.getDescription());
+            label.setPadding(new Insets(0, 0, 0, 5));
+            gridPane.add(label, 0, i);
+            ChoiceBox<Object> choiceBox = new ChoiceBox<>();
+            choiceBox.getItems().addAll(parameter.getPossibleValues());
+            choiceBox.getSelectionModel().selectFirst();
+            gridPane.add(choiceBox, 1, i);
+            conversionParameterValues.put(parameter, choiceBox.valueProperty());
+        }
+        return gridPane;
     }
 
     @FXML
@@ -149,20 +205,49 @@ public class VisualizationController {
     public void importOntology() {
         log.setText("");
         int degree = minDegree.getValue() == null ? 0 : minDegree.getValue();
-        List<Parameter<?>> parameters = Arrays.asList(OntologyToGraphConverterImpl.MERGE_EQUIVALENT, OntologyToGraphConverterImpl.MULTIPLY_DATATYPES);
         Collection<? extends OntologyToGraphConverter> converters =
-                getConvertersWithParameterCombinations(parameters, degree);
+                getConvertersWithParameterCombinations(PARAMETERS, degree);
         String graphMetricName = graphMetricChoiceBox.getSelectionModel().selectedItemProperty().getValue();
         GraphMetric graphMetric = GRAPH_METRICS_BY_NAME.get(graphMetricName);
-        OntologyLoaderService service = new OntologyLoaderService(url.getText(), graphMetric, converters);
+        OntologyLoaderService service = new OntologyLoaderService(url.getText());
         service.setOnSucceeded(e -> {
-            EvaluatedGraph evaluatedGraph = (EvaluatedGraph) e.getSource().getValue();
-            logParameterChoice(evaluatedGraph);
-            graph = evaluatedGraph.getGraph();
+            OWLOntology ontology = (OWLOntology) e.getSource().getValue();
+            if (chooseParametersButton.isSelected()) {
+                appendToLog("Choosing best graph representation with metric " + graphMetricName + "...");
+                Task<EvaluatedGraph> task = new Task<EvaluatedGraph>() {
+                    @Override
+                    protected EvaluatedGraph call() {
+                        return new GraphChooser(ontology, converters, graphMetric).choose();
+                    }
+                };
+                executorService.submit(task);
+                task.setOnSucceeded(event -> {
+                    EvaluatedGraph evaluatedGraph = (EvaluatedGraph) event.getSource().getValue();
+                    logParameterChoice(evaluatedGraph);
+                    graph = evaluatedGraph.getGraph();
+                });
+            } else {
+                Task<Graph> task = new Task<Graph>() {
+                    @Override
+                    protected Graph call() {
+                        OntologyToGraphConverter converter =
+                                new OntologyToGraphConverterImpl(degree, getParameterValues());
+                        MultiGraph multiGraph = converter.convert(ontology);
+                        graph = multiGraph;
+                        return multiGraph;
+                    }
+                };
+                executorService.submit(task);
+            }
         });
         service.setOnFailed(e -> log.setText(e.getSource().getException().getMessage()));
         service.start();
-        appendToLog("Choosing best graph representation with metric " + graphMetricName + "...");
+    }
+
+    private Map<Parameter<?>, Object> getParameterValues() {
+        return conversionParameterValues.entrySet()
+                .stream()
+                .collect(Collectors.toMap(Map.Entry::getKey, stringObjectPropertyEntry -> stringObjectPropertyEntry.getValue().get()));
     }
 
     @FXML
@@ -173,12 +258,20 @@ public class VisualizationController {
     }
 
     private void logParameterChoice(EvaluatedGraph evaluatedGraph) {
-        Map<Map<String, Object>, Double> metricValuesByParameters = evaluatedGraph.getMetricValuesByParameters();
-        for (Map.Entry<Map<String, Object>, Double> entry : metricValuesByParameters.entrySet()) {
-            appendToLog("Value of metric with parameters " + entry.getKey() +
-                    ": " + entry.getValue());
+        Map<Map<Parameter<?>, Object>, Double> metricValuesByParameters = evaluatedGraph.getMetricValuesByParameters();
+        for (Map.Entry<Map<Parameter<?>, Object>, Double> entry : metricValuesByParameters.entrySet()) {
+            String formattedParameters = formatParameters(entry.getKey());
+            appendToLog(String.format("Value of metric with parameters %s: %.3f", formattedParameters, entry.getValue()));
         }
-        appendToLog("Chose " + evaluatedGraph.getBestParameters());
+        appendToLog("Chose " + formatParameters(evaluatedGraph.getBestParameters()));
+    }
+
+    private String formatParameters(Map<Parameter<?>, Object> parametersMap) {
+        return parametersMap.entrySet()
+                .stream()
+                .map(parameterToValue ->
+                        String.format("'%s':%s", parameterToValue.getKey().getDescription(), parameterToValue.getValue()))
+                .collect(joining(",", "{", "}"));
     }
 
     private void chooseLayoutAndVisualize(Graph graph, boolean shouldVisualize) {

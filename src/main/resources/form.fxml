@@ -3,26 +3,31 @@
 <?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
-<GridPane fx:id="gridPane" hgap="20.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="500.0" prefWidth="800.0" vgap="20.0" xmlns="http://javafx.com/javafx/10.0.2-internal" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.golchin.ontology_visualization.VisualizationController">
+<GridPane fx:id="gridPane" hgap="20.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0" prefWidth="800.0" vgap="10.0" xmlns="http://javafx.com/javafx/10.0.2-internal" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.golchin.ontology_visualization.VisualizationController">
     <columnConstraints>
-        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="20.0" prefWidth="100.0" />
-        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="60.0" prefWidth="100.0" />
-        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="20.0" prefWidth="100.0" />
+        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="39.0" prefWidth="100.0" />
+        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="23.0" prefWidth="100.0" />
+      <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="23.0" prefWidth="100.0" />
+        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="15.0" prefWidth="100.0" />
     </columnConstraints>
     <rowConstraints>
       <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="40.0" vgrow="SOMETIMES" />
         <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="40.0" vgrow="SOMETIMES" />
+        <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="10.0" vgrow="SOMETIMES" />
+      <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="40.0" vgrow="SOMETIMES" />
         <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="40.0" vgrow="SOMETIMES" />
-        <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="40.0" vgrow="SOMETIMES" />
-        <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="40.0" vgrow="SOMETIMES" />
-        <RowConstraints minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
+        <RowConstraints maxHeight="75.0" minHeight="10.0" prefHeight="75.0" vgrow="SOMETIMES" />
+        <RowConstraints maxHeight="33.0" minHeight="10.0" prefHeight="16.0" vgrow="SOMETIMES" />
+      <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="10.0" vgrow="SOMETIMES" />
+      <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="40.0" vgrow="SOMETIMES" />
+      <RowConstraints minHeight="10.0" prefHeight="100.0" vgrow="SOMETIMES" />
     </rowConstraints>
-    <TextField fx:id="url" prefHeight="26.0" prefWidth="451.0" GridPane.columnIndex="1" GridPane.rowIndex="1">
+    <TextField fx:id="url" prefHeight="26.0" prefWidth="451.0" GridPane.columnIndex="1" GridPane.columnSpan="2" GridPane.rowIndex="1">
         <GridPane.margin>
           <Insets />
         </GridPane.margin>
     </TextField>
-    <ChoiceBox fx:id="metricChoiceBox" prefHeight="26.0" prefWidth="191.0" GridPane.columnIndex="1" GridPane.rowIndex="4">
+    <ChoiceBox fx:id="metricChoiceBox" prefHeight="26.0" prefWidth="195.0" GridPane.columnIndex="1" GridPane.rowIndex="8">
         <GridPane.margin>
           <Insets />
         </GridPane.margin>
@@ -32,30 +37,26 @@
           <Insets left="20.0" />
         </GridPane.margin>
     </Label>
-    <Label prefHeight="16.0" prefWidth="178.0" text="Layout metric" GridPane.rowIndex="4">
+    <Label prefHeight="16.0" prefWidth="178.0" text="Layout metric" GridPane.rowIndex="8">
         <GridPane.margin>
           <Insets left="20.0" />
         </GridPane.margin>
     </Label>
-    <Label prefHeight="16.0" prefWidth="178.0" text="Minimum degree" GridPane.rowIndex="2">
+    <Label prefHeight="16.0" prefWidth="267.0" text="Remove nodes with degree less than" GridPane.rowIndex="4">
       <GridPane.margin>
          <Insets left="20.0" />
       </GridPane.margin>
     </Label>
-    <Button alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onMouseClicked="#visualize" text="Visualize" GridPane.columnIndex="2" GridPane.halignment="CENTER" GridPane.rowIndex="4" />
-    <Spinner fx:id="minDegree" GridPane.columnIndex="1" GridPane.rowIndex="2" />
-    <TextArea fx:id="log" prefHeight="184.0" prefWidth="600.0" GridPane.columnSpan="3" GridPane.rowIndex="5">
+    <Button alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onMouseClicked="#visualize" text="Visualize" GridPane.columnIndex="3" GridPane.halignment="CENTER" GridPane.rowIndex="8" />
+    <Spinner fx:id="minDegree" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+    <TextArea fx:id="log" prefHeight="184.0" prefWidth="600.0" GridPane.columnSpan="4" GridPane.rowIndex="9">
         <GridPane.margin>
-            <Insets left="5.0" />
+            <Insets bottom="5.0" left="5.0" right="5.0" />
         </GridPane.margin>
     </TextArea>
-   <Label prefHeight="16.0" prefWidth="186.0" text="Graph metric" GridPane.rowIndex="3">
-      <GridPane.margin>
-         <Insets left="20.0" />
-      </GridPane.margin>
-   </Label>
-   <ChoiceBox fx:id="graphMetricChoiceBox" prefHeight="26.0" prefWidth="189.0" GridPane.columnIndex="1" GridPane.rowIndex="3" />
-   <MenuBar>
+    <Label prefHeight="16.0" prefWidth="186.0" text="Graph metric" GridPane.columnIndex="1" GridPane.rowIndex="6" />
+    <ChoiceBox fx:id="graphMetricChoiceBox" prefHeight="26.0" prefWidth="195.0" GridPane.columnIndex="2" GridPane.rowIndex="6" />
+   <MenuBar GridPane.columnSpan="4" GridPane.valignment="TOP">
      <menus>
        <Menu mnemonicParsing="false" text="File">
          <items>
@@ -66,5 +67,31 @@
        </Menu>
      </menus>
    </MenuBar>
-   <Button alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" text="Import" GridPane.columnIndex="2" GridPane.rowIndex="1" GridPane.halignment="CENTER" onMouseClicked="#importOntology"/>
+   <Button alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onMouseClicked="#importOntology" text="Import" GridPane.columnIndex="3" GridPane.halignment="CENTER" GridPane.rowIndex="1" />
+   <ScrollPane fx:id="scrollPane" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.columnSpan="2" GridPane.rowIndex="5" />
+   <RadioButton fx:id="explicitlySetParametersButton" mnemonicParsing="false" text="Explicitly set parameters" GridPane.rowIndex="5">
+      <padding>
+         <Insets left="20.0" />
+      </padding>
+   </RadioButton>
+   <RadioButton fx:id="chooseParametersButton" mnemonicParsing="false" text="Choose parameters automatically" GridPane.rowIndex="6">
+      <GridPane.margin>
+         <Insets left="20.0" />
+      </GridPane.margin>
+   </RadioButton>
+   <Separator prefHeight="4.0" prefWidth="394.0" GridPane.columnSpan="4" GridPane.rowIndex="2">
+      <GridPane.margin>
+         <Insets left="5.0" right="5.0" />
+      </GridPane.margin>
+   </Separator>
+   <Separator prefWidth="200.0" GridPane.columnSpan="4" GridPane.rowIndex="7">
+      <GridPane.margin>
+         <Insets left="5.0" right="5.0" />
+      </GridPane.margin>
+   </Separator>
+   <Label text="Ontology-to-graph conversion options" GridPane.rowIndex="3">
+      <padding>
+         <Insets left="20.0" />
+      </padding>
+   </Label>
 </GridPane>

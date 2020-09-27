@@ -20,8 +20,8 @@ public class GraphChooser {
     protected EvaluatedGraph choose() {
         Double bestMetricValue = null;
         Graph bestGraph = null;
-        Map<String, Object> bestParameterValues = null;
-        Map<Map<String, Object>, Double> metricValuesByParameters = new HashMap<>();
+        Map<Parameter<?>, Object> bestParameterValues = null;
+        Map<Map<Parameter<?>, Object>, Double> metricValuesByParameters = new HashMap<>();
         Comparator<Double> comparator = metric.getComparator();
         for (OntologyToGraphConverter converter : converters) {
             MultiGraph graph = converter.convert(ontology);

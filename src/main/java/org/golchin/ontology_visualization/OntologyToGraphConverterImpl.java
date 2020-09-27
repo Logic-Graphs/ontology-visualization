@@ -18,9 +18,9 @@ import java.util.stream.Collectors;
 public class OntologyToGraphConverterImpl implements OntologyToGraphConverter {
     public static final Set<Boolean> BOOLEANS = ImmutableSet.of(Boolean.TRUE, Boolean.FALSE);
     public static final Parameter<Boolean> MULTIPLY_DATATYPES =
-            new Parameter<>("multipleNodesForDatatype", BOOLEANS);
+            new Parameter<>("multipleNodesForDatatype", "Use multiple nodes for a datatype", BOOLEANS);
     public static final Parameter<Boolean> MERGE_EQUIVALENT =
-            new Parameter<>("mergeEquivalentClasses", BOOLEANS);
+            new Parameter<>("mergeEquivalentClasses", "Merge equivalent classes", BOOLEANS);
     private final int minDegree;
     /**
      * If true, merge equivalent classes into one node, otherwise denote equivalence with undirected edges
@@ -30,7 +30,7 @@ public class OntologyToGraphConverterImpl implements OntologyToGraphConverter {
      * If true, create a node for each occurrence of a datatype, otherwise a single one
      */
     private final boolean multipleNodesForDatatype;
-    private final Map<String, Object> parameterValues;
+    private final Map<Parameter<?>, Object> parameterValues;
     private final AtomicInteger edgeCounter = new AtomicInteger();
     private final AtomicInteger nodeCounter = new AtomicInteger();
 
@@ -38,16 +38,16 @@ public class OntologyToGraphConverterImpl implements OntologyToGraphConverter {
         this(0, Collections.emptyMap());
     }
 
-    public OntologyToGraphConverterImpl(int minDegree, Map<String, Object> parameterValues) {
+    public OntologyToGraphConverterImpl(int minDegree, Map<Parameter<?>, Object> parameterValues) {
         this.minDegree = minDegree;
         this.parameterValues = parameterValues;
-        mergeEquivalentClasses = (boolean) parameterValues.getOrDefault(MERGE_EQUIVALENT.getName(), true);
-        multipleNodesForDatatype = (boolean) parameterValues.getOrDefault(MULTIPLY_DATATYPES.getName(), true);
+        mergeEquivalentClasses = (boolean) parameterValues.getOrDefault(MERGE_EQUIVALENT, true);
+        multipleNodesForDatatype = (boolean) parameterValues.getOrDefault(MULTIPLY_DATATYPES, true);
     }
 
     public OntologyToGraphConverterImpl(int minDegree, boolean mergeEquivalentClasses, boolean multipleNodesForDatatype) {
         this(minDegree,
-                ImmutableMap.of(MERGE_EQUIVALENT.getName(), mergeEquivalentClasses, MULTIPLY_DATATYPES.getName(), multipleNodesForDatatype));
+                ImmutableMap.of(MERGE_EQUIVALENT, mergeEquivalentClasses, MULTIPLY_DATATYPES, multipleNodesForDatatype));
     }
 
     private void traverseEquivalentClasses(OWLOntology ontology,
@@ -300,7 +300,7 @@ public class OntologyToGraphConverterImpl implements OntologyToGraphConverter {
     }
 
     @Override
-    public Map<String, Object> getParameterValues() {
+    public Map<Parameter<?>, Object> getParameterValues() {
         return parameterValues;
     }
 

@@ -8,5 +8,5 @@ import java.util.Map;
 public interface OntologyToGraphConverter {
     MultiGraph convert(OWLOntology ontology);
 
-    Map<String, Object> getParameterValues();
+    Map<Parameter<?>, Object> getParameterValues();
 }
