@@ -7,7 +7,7 @@ import org.graphstream.ui.javafx.util.FxFileSinkImages;
 public class GraphExportToImageService extends GraphExportService {
     private final FileSinkImages fileSink;
 
-    protected GraphExportToImageService() {
+    public GraphExportToImageService() {
         fileSink = new FxFileSinkImages();
         fileSink.setLayoutPolicy(FileSinkImages.LayoutPolicy.NO_LAYOUT);
     }

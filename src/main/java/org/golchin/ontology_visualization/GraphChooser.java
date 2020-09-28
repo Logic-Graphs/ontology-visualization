@@ -17,7 +17,7 @@ public class GraphChooser {
     private final Collection<? extends OntologyToGraphConverter> converters;
     private final GraphMetric metric;
 
-    protected EvaluatedGraph choose() {
+    public EvaluatedGraph choose() {
         Double bestMetricValue = null;
         Graph bestGraph = null;
         Map<Parameter<?>, Object> bestParameterValues = null;

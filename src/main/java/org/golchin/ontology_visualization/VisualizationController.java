@@ -117,7 +117,7 @@ public class VisualizationController {
 
     private final Map<Parameter<?>, ObjectProperty<?>> conversionParameterValues = new HashMap<>();
 
-    private static Collection<? extends OntologyToGraphConverter> getConvertersWithParameterCombinations(List<Parameter<?>> parameters, int degree) {
+    public static Collection<? extends OntologyToGraphConverter> getConvertersWithParameterCombinations(List<Parameter<?>> parameters, int degree) {
         return Parameter.getParameterCombinations(parameters)
                 .stream()
                 .map(parametersMap -> new OntologyToGraphConverterImpl(degree, parametersMap))
