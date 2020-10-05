@@ -24,6 +24,7 @@ public class PanningMouseManager extends FxMouseOverMouseManager {
     private final Camera camera;
     private final Graph graph;
     private final Random random = new Random();
+    private static final String HOVERED_EDGE_STYLESHEET = "edge.hovered { text-visibility-mode: normal;  text-alignment: along; fill-color: blue; }";
 
     public PanningMouseManager(FxViewPanel panel, Camera camera, Graph graph) {
         this.panel = panel;

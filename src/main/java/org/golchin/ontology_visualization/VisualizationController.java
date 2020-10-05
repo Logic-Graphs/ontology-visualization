@@ -61,6 +61,9 @@ public class VisualizationController {
     private static final Map<String, GraphMetric> GRAPH_METRICS_BY_NAME = ImmutableMap.of(
             "Entropy", new DegreeEntropyMetric(),
             "Baimuratov et al.", new BaimuratovMetric());
+    private static final Map<String, OntologyToGraphConverter> CONVERTERS_BY_NAME = ImmutableMap.of(
+            "Ontograf", new OntografConverter(),
+            "OWLViz", new OWLVizConverter());
 
     private Graph graph;
 
@@ -115,9 +118,15 @@ public class VisualizationController {
     @FXML
     private RadioButton chooseLayoutAutomaticallyButton;
 
+    @FXML
+    private RadioButton usePredefinedConverterButton;
+
+    @FXML
+    private ChoiceBox<OntologyToGraphConverter> converterChoiceBox;
+
     private final Map<Parameter<?>, ObjectProperty<?>> conversionParameterValues = new HashMap<>();
 
-    private static Collection<? extends OntologyToGraphConverter> getConvertersWithParameterCombinations(List<Parameter<?>> parameters, int degree) {
+    private static Collection<OntologyToGraphConverter> getConvertersWithParameterCombinations(List<Parameter<?>> parameters, int degree) {
         return Parameter.getParameterCombinations(parameters)
                 .stream()
                 .map(parametersMap -> new OntologyToGraphConverterImpl(degree, parametersMap))
@@ -143,6 +152,20 @@ public class VisualizationController {
         ToggleGroup toggleGroup = new ToggleGroup();
         explicitlySetParametersButton.setToggleGroup(toggleGroup);
         chooseParametersButton.setToggleGroup(toggleGroup);
+        usePredefinedConverterButton.setToggleGroup(toggleGroup);
+        converterChoiceBox.getItems().addAll(CONVERTERS_BY_NAME.values());
+        converterChoiceBox.getSelectionModel().selectFirst();
+        converterChoiceBox.setConverter(new StringConverter<OntologyToGraphConverter>() {
+            @Override
+            public String toString(OntologyToGraphConverter object) {
+                return String.valueOf(object);
+            }
+
+            @Override
+            public OntologyToGraphConverter fromString(String string) {
+                return CONVERTERS_BY_NAME.get(string);
+            }
+        });
         ToggleGroup layoutToggleGroup = new ToggleGroup();
         usePredefinedAlgorithmButton.setToggleGroup(layoutToggleGroup);
         chooseLayoutAutomaticallyButton.setToggleGroup(layoutToggleGroup);
@@ -230,8 +253,9 @@ public class VisualizationController {
     public void importOntology() {
         log.setText("");
         int degree = minDegree.getValue() == null ? 0 : minDegree.getValue();
-        Collection<? extends OntologyToGraphConverter> converters =
+        Collection<OntologyToGraphConverter> converters =
                 getConvertersWithParameterCombinations(PARAMETERS, degree);
+        converters.addAll(CONVERTERS_BY_NAME.values());
         String graphMetricName = graphMetricChoiceBox.getSelectionModel().selectedItemProperty().getValue();
         GraphMetric graphMetric = GRAPH_METRICS_BY_NAME.get(graphMetricName);
         OntologyLoaderService service = new OntologyLoaderService(url.getText());
@@ -251,7 +275,7 @@ public class VisualizationController {
                     logParameterChoice(evaluatedGraph);
                     graph = evaluatedGraph.getGraph();
                 });
-            } else {
+            } else if (explicitlySetParametersButton.isSelected()) {
                 Task<Graph> task = new Task<Graph>() {
                     @Override
                     protected Graph call() {
@@ -263,6 +287,9 @@ public class VisualizationController {
                     }
                 };
                 executorService.submit(task);
+            } else {
+                OntologyToGraphConverter converter = converterChoiceBox.getValue();
+                executorService.submit(new ConversionTask(ontology, converter));
             }
         });
         service.setOnFailed(e -> log.setText(e.getSource().getException().getMessage()));
@@ -283,12 +310,19 @@ public class VisualizationController {
     }
 
     private void logParameterChoice(EvaluatedGraph evaluatedGraph) {
-        Map<Map<Parameter<?>, Object>, Double> metricValuesByParameters = evaluatedGraph.getMetricValuesByParameters();
-        for (Map.Entry<Map<Parameter<?>, Object>, Double> entry : metricValuesByParameters.entrySet()) {
-            String formattedParameters = formatParameters(entry.getKey());
-            appendToLog(String.format("Value of metric with parameters %s: %.3f", formattedParameters, entry.getValue()));
+        Map<OntologyToGraphConverter, Double> metricValuesByParameters = evaluatedGraph.getMetricValuesByConverters();
+        for (Map.Entry<OntologyToGraphConverter, Double> entry : metricValuesByParameters.entrySet()) {
+            OntologyToGraphConverter converter = entry.getKey();
+            String formattedParameters = formatParameters(converter.getParameterValues());
+            appendToLog(String.format("Value of metric with converter %s and parameters %s: %.3f",
+                    converter,
+                    formattedParameters,
+                    entry.getValue()));
         }
-        appendToLog("Chose " + formatParameters(evaluatedGraph.getBestParameters()));
+        OntologyToGraphConverter bestConverter = evaluatedGraph.getBestConverter();
+        appendToLog(String.format("Chose %s with parameters %s",
+                bestConverter,
+                formatParameters(bestConverter.getParameterValues())));
     }
 
     private String formatParameters(Map<Parameter<?>, Object> parametersMap) {
@@ -359,5 +393,22 @@ public class VisualizationController {
 
     private void appendToLog(String line) {
         log.setText(log.getText() + line + "\n");
+    }
+
+    class ConversionTask extends Task<Graph> {
+        private final OWLOntology ontology;
+        private final OntologyToGraphConverter converter;
+
+        ConversionTask(OWLOntology ontology, OntologyToGraphConverter converter) {
+            this.ontology = ontology;
+            this.converter = converter;
+        }
+
+        @Override
+        protected Graph call() {
+            MultiGraph multiGraph = converter.convert(ontology);
+            graph = multiGraph;
+            return multiGraph;
+        }
     }
 }

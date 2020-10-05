@@ -11,6 +11,6 @@ import java.util.Map;
 public class EvaluatedGraph {
     private final Graph graph;
     private final double bestMetricValue;
-    private final Map<Parameter<?>, Object> bestParameters;
-    private final Map<Map<Parameter<?>, Object>, Double> metricValuesByParameters;
+    private final OntologyToGraphConverter bestConverter;
+    private final Map<OntologyToGraphConverter, Double> metricValuesByConverters;
 }

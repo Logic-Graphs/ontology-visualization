@@ -20,19 +20,19 @@ public class GraphChooser {
     protected EvaluatedGraph choose() {
         Double bestMetricValue = null;
         Graph bestGraph = null;
-        Map<Parameter<?>, Object> bestParameterValues = null;
-        Map<Map<Parameter<?>, Object>, Double> metricValuesByParameters = new HashMap<>();
+        Map<OntologyToGraphConverter, Double> metricValuesByParameters = new HashMap<>();
         Comparator<Double> comparator = metric.getComparator();
+        OntologyToGraphConverter bestConverter = null;
         for (OntologyToGraphConverter converter : converters) {
             MultiGraph graph = converter.convert(ontology);
             double value = metric.calculate(graph);
             if (bestMetricValue == null || comparator.compare(bestMetricValue, value) < 0) {
                 bestMetricValue = value;
                 bestGraph = graph;
-                bestParameterValues = converter.getParameterValues();
+                bestConverter = converter;
             }
-            metricValuesByParameters.put(converter.getParameterValues(), value);
+            metricValuesByParameters.put(converter, value);
         }
-        return new EvaluatedGraph(bestGraph, bestMetricValue, bestParameterValues, metricValuesByParameters);
+        return new EvaluatedGraph(bestGraph, bestMetricValue, bestConverter, metricValuesByParameters);
     }
 }

@@ -15,6 +15,8 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import static org.golchin.ontology_visualization.ConversionUtils.addNodeIfNecessary;
+
 public class OntologyToGraphConverterImpl implements OntologyToGraphConverter {
     public static final Set<Boolean> BOOLEANS = ImmutableSet.of(Boolean.TRUE, Boolean.FALSE);
     public static final Parameter<Boolean> MULTIPLY_DATATYPES =
@@ -173,7 +175,7 @@ public class OntologyToGraphConverterImpl implements OntologyToGraphConverter {
                 Node node = graph.addNode(owlClass.toStringID());
                 String label = owlClass.getIRI().getRemainder().orNull();
                 node.setAttribute("label", label);
-                addToAttribute(node, "ids", node.getId());
+                ConversionUtils.addToAttribute(node, "ids", node.getId());
                 traverseEquivalentClasses(ontology, owlClass, node.getId(), owlObjectsToIds);
             }
         }
@@ -197,7 +199,7 @@ public class OntologyToGraphConverterImpl implements OntologyToGraphConverter {
                     Edge copy = copyEdge(graph, theNode, nodeId, node, edge);
                     copy.setAttribute("label", edge.getAttribute("label"));
                 });
-                addToAttribute(theNode, "ids", nodeId);
+                ConversionUtils.addToAttribute(theNode, "ids", nodeId);
             }
         }
         for (Node node : nodesToRemove) {
@@ -234,27 +236,6 @@ public class OntologyToGraphConverterImpl implements OntologyToGraphConverter {
         }
     }
 
-    static void addToAttribute(Node node, String attribute, String element) {
-        List<String> ids = (List<String>) node.getAttribute(attribute);
-        if (ids == null) {
-            ids = new ArrayList<>();
-        }
-        ids.add(element);
-        node.setAttribute("ids", ids);
-    }
-
-    static void addNodeIfNecessary(Graph graph, String nodeId, String label) {
-        if (graph.getNode(nodeId) == null) {
-            Node node = graph.addNode(nodeId);
-            Object oldLabel = node.getAttribute("label");
-            if (oldLabel != null) {
-                label = oldLabel + ", " + label;
-            }
-            node.setAttribute("label", label);
-            addToAttribute(node, "ids", nodeId);
-        }
-    }
-
     private void addEdge(OWLOntology ontology,
                         Graph graph,
                         String edgeId,
@@ -269,20 +250,13 @@ public class OntologyToGraphConverterImpl implements OntologyToGraphConverter {
             traverseEquivalentClasses(ontology, ((OWLClass) target), getOWLObjectId(target), owlObjectsToIds);
         }
         String sourceId = getOWLObjectId(source);
-        String sourceLabel = getOWLObjectLabel(source);
+        String sourceLabel = ConversionUtils.getOWLObjectLabel(source);
         String targetId = getOWLObjectId(target);
-        String targetLabel = getOWLObjectLabel(target);
+        String targetLabel = ConversionUtils.getOWLObjectLabel(target);
         addNodeIfNecessary(graph, sourceId, sourceLabel);
         addNodeIfNecessary(graph, targetId, targetLabel);
         graph.addEdge(edgeId, sourceId, targetId, true)
                 .setAttribute("label", label);
-    }
-
-    private static String getOWLObjectLabel(OWLObject owlObject) {
-        if (owlObject instanceof OWLNamedObject) {
-            return ((OWLNamedObject) owlObject).getIRI().getRemainder().orNull();
-        }
-        return owlObject.toString();
     }
 
     private String getOWLObjectId(OWLObject owlObject) {
@@ -312,5 +286,10 @@ public class OntologyToGraphConverterImpl implements OntologyToGraphConverter {
             this.representativeId = representativeId;
             nodeIds.add(representativeId);
         }
+    }
+
+    @Override
+    public String toString() {
+        return "Built-in";
     }
 }
