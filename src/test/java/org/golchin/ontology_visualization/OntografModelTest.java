@@ -20,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class OntografModelTest {
     private OWLOntology loadOntology(String resourceName) throws OWLOntologyCreationException {
         OWLOntologyManager manager = OWLManager.createOWLOntologyManager();
-        URL url = OntologyToGraphConverterImplTest.class.getResource("/" + resourceName);
+        URL url = OntografModelTest.class.getResource("/" + resourceName);
         return manager.loadOntology(IRI.create(url));
     }
 
