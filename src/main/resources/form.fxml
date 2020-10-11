@@ -13,13 +13,11 @@
     <rowConstraints>
       <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="40.0" vgrow="SOMETIMES" />
         <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="40.0" vgrow="SOMETIMES" />
-        <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="10.0" vgrow="SOMETIMES" />
       <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="40.0" vgrow="SOMETIMES" />
         <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="40.0" vgrow="SOMETIMES" />
       <RowConstraints maxHeight="30.0" minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
         <RowConstraints maxHeight="33.0" minHeight="10.0" prefHeight="16.0" vgrow="SOMETIMES" />
-      <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="10.0" vgrow="SOMETIMES" />
-      <RowConstraints maxHeight="-Infinity" minHeight="30.0" prefHeight="30.0" vgrow="SOMETIMES" />
+      <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="40.0" vgrow="SOMETIMES" />
       <RowConstraints maxHeight="-Infinity" minHeight="30.0" prefHeight="30.0" vgrow="SOMETIMES" />
       <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="40.0" vgrow="SOMETIMES" />
       <RowConstraints minHeight="10.0" prefHeight="100.0" vgrow="SOMETIMES" />
@@ -34,14 +32,14 @@
           <Insets left="20.0" />
         </GridPane.margin>
     </Label>
-    <Label prefHeight="16.0" prefWidth="267.0" text="Remove nodes with degree less than" GridPane.rowIndex="4">
+    <Label prefHeight="16.0" prefWidth="267.0" text="Remove nodes with degree less than" GridPane.rowIndex="3">
       <GridPane.margin>
          <Insets left="20.0" />
       </GridPane.margin>
     </Label>
-    <Button alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onMouseClicked="#visualize" text="Visualize" GridPane.columnIndex="3" GridPane.halignment="CENTER" GridPane.rowIndex="10" />
-    <Spinner fx:id="minDegree" GridPane.columnIndex="1" GridPane.rowIndex="4" />
-    <TextArea fx:id="log" prefHeight="184.0" prefWidth="600.0" GridPane.columnSpan="4" GridPane.rowIndex="11">
+    <Button alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onMouseClicked="#visualize" text="Visualize" GridPane.columnIndex="3" GridPane.halignment="CENTER" GridPane.rowIndex="8" />
+    <Spinner fx:id="minDegree" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+    <TextArea fx:id="log" prefHeight="184.0" prefWidth="600.0" GridPane.columnSpan="4" GridPane.rowIndex="9">
         <GridPane.margin>
             <Insets bottom="5.0" left="5.0" right="5.0" />
         </GridPane.margin>
@@ -58,57 +56,56 @@
      </menus>
    </MenuBar>
    <Button alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onMouseClicked="#importOntology" text="Import" GridPane.columnIndex="3" GridPane.halignment="CENTER" GridPane.rowIndex="1" />
-    <RadioButton fx:id="chooseParametersButton" mnemonicParsing="false" selected="true" text="Choose converter automatically" GridPane.rowIndex="6">
+    <RadioButton fx:id="chooseParametersButton" mnemonicParsing="false" selected="true" text="Choose converter automatically" GridPane.rowIndex="5">
       <GridPane.margin>
          <Insets left="20.0" />
       </GridPane.margin>
    </RadioButton>
-    <Label disable="${!chooseParametersButton.selected}" prefHeight="16.0" prefWidth="186.0" text="Graph metric" GridPane.columnIndex="1" GridPane.rowIndex="6" />
-    <ChoiceBox fx:id="graphMetricChoiceBox" disable="${!chooseParametersButton.selected}" prefHeight="26.0" prefWidth="195.0" GridPane.columnIndex="2" GridPane.rowIndex="6" />
-    <Separator prefHeight="4.0" prefWidth="394.0" GridPane.columnSpan="4" GridPane.rowIndex="2">
-      <GridPane.margin>
-         <Insets left="5.0" right="5.0" />
-      </GridPane.margin>
-   </Separator>
-   <Separator prefWidth="200.0" GridPane.columnSpan="4" GridPane.rowIndex="7">
-      <GridPane.margin>
-         <Insets left="5.0" right="5.0" />
-      </GridPane.margin>
-   </Separator>
-   <Label text="Ontology-to-graph conversion options" GridPane.rowIndex="3">
-      <padding>
-         <Insets left="20.0" />
-      </padding>
-   </Label>
-   <Label text="Layout options" GridPane.rowIndex="8">
-      <GridPane.margin>
-         <Insets left="20.0" />
-      </GridPane.margin></Label>
-   <RadioButton fx:id="chooseLayoutAutomaticallyButton" mnemonicParsing="false" selected="true" text="Choose layout automatically" GridPane.rowIndex="10">
+    <Label disable="${!chooseParametersButton.selected}" prefHeight="16.0" prefWidth="186.0" text="Graph metric" GridPane.columnIndex="1" GridPane.rowIndex="5" />
+    <ChoiceBox fx:id="graphMetricChoiceBox" disable="${!chooseParametersButton.selected}" prefHeight="26.0" prefWidth="195.0" GridPane.columnIndex="2" GridPane.rowIndex="5" />
+   <RadioButton fx:id="chooseLayoutAutomaticallyButton" mnemonicParsing="false" selected="true" text="Choose layout automatically" GridPane.rowIndex="8">
       <padding>
          <Insets left="20.0" />
       </padding>
    </RadioButton>
-    <Label disable="${!chooseLayoutAutomaticallyButton.selected}" prefHeight="16.0" prefWidth="178.0" text="Layout metric" GridPane.columnIndex="1" GridPane.rowIndex="10">
+    <Label disable="${!chooseLayoutAutomaticallyButton.selected}" prefHeight="16.0" prefWidth="178.0" text="Layout metric" GridPane.columnIndex="1" GridPane.rowIndex="8">
         <GridPane.margin>
             <Insets />
         </GridPane.margin>
     </Label>
-    <ChoiceBox fx:id="metricChoiceBox" disable="${!chooseLayoutAutomaticallyButton.selected}" prefHeight="26.0" prefWidth="195.0" GridPane.columnIndex="2" GridPane.rowIndex="10">
+    <ChoiceBox fx:id="metricChoiceBox" disable="${!chooseLayoutAutomaticallyButton.selected}" prefHeight="26.0" prefWidth="195.0" GridPane.columnIndex="2" GridPane.rowIndex="8">
         <GridPane.margin>
             <Insets />
         </GridPane.margin>
     </ChoiceBox>
-    <RadioButton fx:id="usePredefinedAlgorithmButton" mnemonicParsing="false" text="Use predefined algorithm" GridPane.rowIndex="9">
+    <RadioButton fx:id="usePredefinedAlgorithmButton" mnemonicParsing="false" text="Use predefined algorithm" GridPane.rowIndex="7">
       <GridPane.margin>
          <Insets left="20.0" />
       </GridPane.margin>
    </RadioButton>
-   <ChoiceBox fx:id="layoutAlgorithmChoiceBox" disable="${!usePredefinedAlgorithmButton.selected}" prefHeight="26.0" prefWidth="172.0" GridPane.columnIndex="1" GridPane.rowIndex="9" />
-   <RadioButton fx:id="usePredefinedConverterButton" mnemonicParsing="false" text="Use predefined converter" GridPane.rowIndex="5">
+   <ChoiceBox fx:id="layoutAlgorithmChoiceBox" disable="${!usePredefinedAlgorithmButton.selected}" prefHeight="26.0" prefWidth="172.0" GridPane.columnIndex="1" GridPane.rowIndex="7" />
+   <RadioButton fx:id="usePredefinedConverterButton" mnemonicParsing="false" text="Use predefined converter" GridPane.rowIndex="4">
       <GridPane.margin>
          <Insets left="20.0" />
       </GridPane.margin>
    </RadioButton>
-   <ChoiceBox fx:id="converterChoiceBox" disable="${!usePredefinedConverterButton.selected}" prefHeight="26.0" prefWidth="173.0" GridPane.columnIndex="1" GridPane.rowIndex="5" />
+   <ChoiceBox fx:id="converterChoiceBox" disable="${!usePredefinedConverterButton.selected}" prefHeight="26.0" prefWidth="173.0" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+   <AnchorPane prefHeight="200.0" prefWidth="200.0" GridPane.columnSpan="4" GridPane.rowIndex="2">
+      <children>
+         <Separator layoutX="320.0" layoutY="13.0" prefWidth="200.0" AnchorPane.bottomAnchor="19.0" AnchorPane.leftAnchor="20.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="18.0" />
+         <Label layoutX="54.0" layoutY="12.0" style="-fx-background-color: -fx-background;" text="Ontology-to-graph conversion options" AnchorPane.leftAnchor="20.0" AnchorPane.topAnchor="10.0">
+            <padding>
+               <Insets right="5.0" />
+            </padding></Label>
+      </children>
+   </AnchorPane>
+    <AnchorPane prefHeight="200.0" prefWidth="200.0" GridPane.columnSpan="4" GridPane.rowIndex="6">
+        <children>
+            <Separator layoutX="320.0" layoutY="13.0" prefWidth="200.0" AnchorPane.bottomAnchor="19.0" AnchorPane.leftAnchor="20.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="18.0" />
+            <Label layoutX="54.0" layoutY="12.0" style="-fx-background-color: -fx-background;" text="Layout options" AnchorPane.leftAnchor="20.0" AnchorPane.topAnchor="10.0">
+                <padding>
+                    <Insets right="5.0" />
+                </padding></Label>
+        </children>
+    </AnchorPane>
 </GridPane>
