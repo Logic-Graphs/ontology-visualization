@@ -1,13 +1,10 @@
 package org.golchin.ontology_visualization;
 
 import com.google.common.collect.ImmutableMap;
-import javafx.beans.property.ObjectProperty;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
-import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.layout.GridPane;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.Window;
@@ -33,7 +30,6 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
@@ -48,7 +44,7 @@ public class VisualizationController {
     public static final String EDGE_STYLESHEET = "edge { text-visibility-mode: hidden; text-visibility: 0.5;  }";
     public static final String NODE_STYLESHEET = "node { size-mode: fit; text-alignment: center; fill-color: green; shape: box; }";
     private static final String STYLESHEET = EDGE_STYLESHEET + " " + NODE_STYLESHEET;
-    public static final List<Parameter<?>> PARAMETERS = Arrays.asList(OntologyToGraphConverterImpl.MERGE_EQUIVALENT, OntologyToGraphConverterImpl.MULTIPLY_DATATYPES);
+
     static {
         METRICS_BY_NAME.put("Number of crossings", new NumberOfCrossings());
         METRICS_BY_NAME.put("Crossings angle resolution", new CrossingAngleResolution());
@@ -101,12 +97,6 @@ public class VisualizationController {
     private Graph layoutGraph;
 
     @FXML
-    private ScrollPane scrollPane;
-
-    @FXML
-    private RadioButton explicitlySetParametersButton;
-
-    @FXML
     private RadioButton chooseParametersButton;
 
     @FXML
@@ -124,15 +114,6 @@ public class VisualizationController {
     @FXML
     private ChoiceBox<OntologyToGraphConverter> converterChoiceBox;
 
-    private final Map<Parameter<?>, ObjectProperty<?>> conversionParameterValues = new HashMap<>();
-
-    private static Collection<OntologyToGraphConverter> getConvertersWithParameterCombinations(List<Parameter<?>> parameters, int degree) {
-        return Parameter.getParameterCombinations(parameters)
-                .stream()
-                .map(parametersMap -> new OntologyToGraphConverterImpl(degree, parametersMap))
-                .collect(Collectors.toList());
-    }
-
     @FXML
     public void initialize() {
         url.setText("http://xmlns.com/foaf/spec/index.rdf");
@@ -148,9 +129,7 @@ public class VisualizationController {
                 new FileChooser.ExtensionFilter("JPG image", "*.jpg"),
                 new FileChooser.ExtensionFilter("BMP image", "*.bmp")
         );
-        scrollPane.setContent(createParametersForm());
         ToggleGroup toggleGroup = new ToggleGroup();
-        explicitlySetParametersButton.setToggleGroup(toggleGroup);
         chooseParametersButton.setToggleGroup(toggleGroup);
         usePredefinedConverterButton.setToggleGroup(toggleGroup);
         converterChoiceBox.getItems().addAll(CONVERTERS_BY_NAME.values());
@@ -185,24 +164,6 @@ public class VisualizationController {
         }
         layoutAlgorithmChoiceBox.getSelectionModel().selectFirst();
         log.setEditable(false);
-    }
-
-    private GridPane createParametersForm() {
-        GridPane gridPane = new GridPane();
-        gridPane.setHgap(20);
-        gridPane.setVgap(20);
-        for (int i = 0; i < PARAMETERS.size(); i++) {
-            Parameter<?> parameter = PARAMETERS.get(i);
-            Label label = new Label(parameter.getDescription());
-            label.setPadding(new Insets(0, 0, 0, 5));
-            gridPane.add(label, 0, i);
-            ChoiceBox<Object> choiceBox = new ChoiceBox<>();
-            choiceBox.getItems().addAll(parameter.getPossibleValues());
-            choiceBox.getSelectionModel().selectFirst();
-            gridPane.add(choiceBox, 1, i);
-            conversionParameterValues.put(parameter, choiceBox.valueProperty());
-        }
-        return gridPane;
     }
 
     @FXML
@@ -253,9 +214,7 @@ public class VisualizationController {
     public void importOntology() {
         log.setText("");
         int degree = minDegree.getValue() == null ? 0 : minDegree.getValue();
-        Collection<OntologyToGraphConverter> converters =
-                getConvertersWithParameterCombinations(PARAMETERS, degree);
-        converters.addAll(CONVERTERS_BY_NAME.values());
+        Collection<OntologyToGraphConverter> converters = new ArrayList<>(CONVERTERS_BY_NAME.values());
         String graphMetricName = graphMetricChoiceBox.getSelectionModel().selectedItemProperty().getValue();
         GraphMetric graphMetric = GRAPH_METRICS_BY_NAME.get(graphMetricName);
         OntologyLoaderService service = new OntologyLoaderService(url.getText());
@@ -275,18 +234,6 @@ public class VisualizationController {
                     logParameterChoice(evaluatedGraph);
                     graph = evaluatedGraph.getGraph();
                 });
-            } else if (explicitlySetParametersButton.isSelected()) {
-                Task<Graph> task = new Task<Graph>() {
-                    @Override
-                    protected Graph call() {
-                        OntologyToGraphConverter converter =
-                                new OntologyToGraphConverterImpl(degree, getParameterValues());
-                        MultiGraph multiGraph = converter.convert(ontology);
-                        graph = multiGraph;
-                        return multiGraph;
-                    }
-                };
-                executorService.submit(task);
             } else {
                 OntologyToGraphConverter converter = converterChoiceBox.getValue();
                 executorService.submit(new ConversionTask(ontology, converter));
@@ -294,12 +241,6 @@ public class VisualizationController {
         });
         service.setOnFailed(e -> log.setText(e.getSource().getException().getMessage()));
         service.start();
-    }
-
-    private Map<Parameter<?>, Object> getParameterValues() {
-        return conversionParameterValues.entrySet()
-                .stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, stringObjectPropertyEntry -> stringObjectPropertyEntry.getValue().get()));
     }
 
     @FXML
@@ -310,27 +251,15 @@ public class VisualizationController {
     }
 
     private void logParameterChoice(EvaluatedGraph evaluatedGraph) {
-        Map<OntologyToGraphConverter, Double> metricValuesByParameters = evaluatedGraph.getMetricValuesByConverters();
-        for (Map.Entry<OntologyToGraphConverter, Double> entry : metricValuesByParameters.entrySet()) {
+        Map<OntologyToGraphConverter, Double> metricValuesByConverters = evaluatedGraph.getMetricValuesByConverters();
+        for (Map.Entry<OntologyToGraphConverter, Double> entry : metricValuesByConverters.entrySet()) {
             OntologyToGraphConverter converter = entry.getKey();
-            String formattedParameters = formatParameters(converter.getParameterValues());
-            appendToLog(String.format("Value of metric with converter %s and parameters %s: %.3f",
+            appendToLog(String.format("Value of metric with converter %s: %.3f",
                     converter,
-                    formattedParameters,
                     entry.getValue()));
         }
         OntologyToGraphConverter bestConverter = evaluatedGraph.getBestConverter();
-        appendToLog(String.format("Chose %s with parameters %s",
-                bestConverter,
-                formatParameters(bestConverter.getParameterValues())));
-    }
-
-    private String formatParameters(Map<Parameter<?>, Object> parametersMap) {
-        return parametersMap.entrySet()
-                .stream()
-                .map(parameterToValue ->
-                        String.format("'%s':%s", parameterToValue.getKey().getDescription(), parameterToValue.getValue()))
-                .collect(joining(",", "{", "}"));
+        appendToLog("Chose " + bestConverter);
     }
 
     private void chooseLayoutAndVisualize(Graph graph) {
