@@ -214,6 +214,7 @@ public class VisualizationController {
     public void importOntology() {
         log.setText("");
         int degree = minDegree.getValue() == null ? 0 : minDegree.getValue();
+        NodeRemovingGraphSimplifier simplifier = new NodeRemovingGraphSimplifier(degree);
         Collection<OntologyToGraphConverter> converters = new ArrayList<>(CONVERTERS_BY_NAME.values());
         String graphMetricName = graphMetricChoiceBox.getSelectionModel().selectedItemProperty().getValue();
         GraphMetric graphMetric = GRAPH_METRICS_BY_NAME.get(graphMetricName);
@@ -225,7 +226,7 @@ public class VisualizationController {
                 Task<EvaluatedGraph> task = new Task<EvaluatedGraph>() {
                     @Override
                     protected EvaluatedGraph call() {
-                        return new GraphChooser(ontology, converters, graphMetric).choose();
+                        return new GraphChooser(ontology, converters, simplifier, graphMetric).choose();
                     }
                 };
                 executorService.submit(task);
@@ -236,7 +237,7 @@ public class VisualizationController {
                 });
             } else {
                 OntologyToGraphConverter converter = converterChoiceBox.getValue();
-                executorService.submit(new ConversionTask(ontology, converter));
+                executorService.submit(new ConversionTask(ontology, converter, simplifier));
             }
         });
         service.setOnFailed(e -> log.setText(e.getSource().getException().getMessage()));
@@ -327,15 +328,18 @@ public class VisualizationController {
     class ConversionTask extends Task<Graph> {
         private final OWLOntology ontology;
         private final OntologyToGraphConverter converter;
+        private final GraphSimplifier simplifier;
 
-        ConversionTask(OWLOntology ontology, OntologyToGraphConverter converter) {
+        ConversionTask(OWLOntology ontology, OntologyToGraphConverter converter, GraphSimplifier simplifier) {
             this.ontology = ontology;
             this.converter = converter;
+            this.simplifier = simplifier;
         }
 
         @Override
         protected Graph call() {
             MultiGraph multiGraph = converter.convert(ontology);
+            simplifier.simplify(multiGraph);
             graph = multiGraph;
             return multiGraph;
         }

@@ -15,6 +15,7 @@ import java.util.Map;
 public class GraphChooser {
     private final OWLOntology ontology;
     private final Collection<? extends OntologyToGraphConverter> converters;
+    private final GraphSimplifier simplifier;
     private final GraphMetric metric;
 
     protected EvaluatedGraph choose() {
@@ -25,6 +26,7 @@ public class GraphChooser {
         OntologyToGraphConverter bestConverter = null;
         for (OntologyToGraphConverter converter : converters) {
             MultiGraph graph = converter.convert(ontology);
+            simplifier.simplify(graph);
             double value = metric.calculate(graph);
             if (bestMetricValue == null || comparator.compare(bestMetricValue, value) < 0) {
                 bestMetricValue = value;
