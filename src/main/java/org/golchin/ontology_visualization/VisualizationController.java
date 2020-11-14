@@ -12,6 +12,7 @@ import javafx.util.StringConverter;
 import org.golchin.ontology_visualization.metrics.BaimuratovMetric;
 import org.golchin.ontology_visualization.metrics.DegreeEntropyMetric;
 import org.golchin.ontology_visualization.metrics.GraphMetric;
+import org.golchin.ontology_visualization.metrics.HosoyaEntropyMetric;
 import org.golchin.ontology_visualization.metrics.layout.*;
 import org.graphstream.graph.Graph;
 import org.graphstream.graph.implementations.MultiGraph;
@@ -56,7 +57,8 @@ public class VisualizationController {
 
     private static final Map<String, GraphMetric> GRAPH_METRICS_BY_NAME = ImmutableMap.of(
             "Entropy", new DegreeEntropyMetric(),
-            "Baimuratov et al.", new BaimuratovMetric());
+            "Baimuratov et al.", new BaimuratovMetric(),
+            "Hosoya entropy", new HosoyaEntropyMetric());
     private static final Map<String, OntologyToGraphConverter> CONVERTERS_BY_NAME = ImmutableMap.of(
             "Ontograf", new OntografConverter(),
             "OWLViz", new OWLVizConverter());
