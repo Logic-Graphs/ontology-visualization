@@ -42,7 +42,7 @@ public class VisualizationController {
 
     public static final Map<String, LayoutMetric> METRICS_BY_NAME = new LinkedHashMap<>();
     public static final String EDGE_STYLESHEET = "edge { text-visibility-mode: hidden; text-visibility: 0.5;  }";
-    public static final String NODE_STYLESHEET = "node { size-mode: fit; text-alignment: center; fill-color: green; shape: box; }";
+    public static final String NODE_STYLESHEET = "node { size-mode: fit; text-alignment: center; fill-color: rgb(170, 204, 255); shape: box; text-offset: 5, -2; }";
     private static final String STYLESHEET = EDGE_STYLESHEET + " " + NODE_STYLESHEET;
 
     static {
