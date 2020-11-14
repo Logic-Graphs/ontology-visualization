@@ -2,13 +2,16 @@
 
 <?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.*?>
-<GridPane fx:id="gridPane" hgap="20.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="700.0" prefWidth="800.0" vgap="10.0" xmlns="http://javafx.com/javafx/10.0.2-internal" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.golchin.ontology_visualization.VisualizationController">
+<GridPane fx:id="gridPane" hgap="10.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="700.0" prefWidth="900.0" vgap="10.0" xmlns="http://javafx.com/javafx/10.0.2-internal" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.golchin.ontology_visualization.VisualizationController">
     <columnConstraints>
         <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="39.0" prefWidth="100.0" />
         <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="23.0" prefWidth="100.0" />
       <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="23.0" prefWidth="100.0" />
-        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="15.0" prefWidth="100.0" />
+        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="11.0" prefWidth="100.0" />
+      <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="6.0" prefWidth="100.0" />
     </columnConstraints>
     <rowConstraints>
       <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="40.0" vgrow="SOMETIMES" />
@@ -37,14 +40,14 @@
          <Insets left="20.0" />
       </GridPane.margin>
     </Label>
-    <Button alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onMouseClicked="#visualize" text="Visualize" GridPane.columnIndex="3" GridPane.halignment="CENTER" GridPane.rowIndex="8" />
+    <Button alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onMouseClicked="#visualize" text="Visualize" GridPane.columnIndex="3" GridPane.columnSpan="2" GridPane.halignment="CENTER" GridPane.rowIndex="8" />
     <Spinner fx:id="minDegree" GridPane.columnIndex="1" GridPane.rowIndex="3" />
-    <TextArea fx:id="log" prefHeight="184.0" prefWidth="600.0" GridPane.columnSpan="4" GridPane.rowIndex="9">
+    <TextArea fx:id="log" prefHeight="184.0" prefWidth="600.0" GridPane.columnSpan="5" GridPane.rowIndex="9">
         <GridPane.margin>
             <Insets bottom="5.0" left="5.0" right="5.0" />
         </GridPane.margin>
     </TextArea>
-   <MenuBar GridPane.columnSpan="4" GridPane.valignment="TOP">
+   <MenuBar GridPane.columnSpan="5" GridPane.valignment="TOP">
      <menus>
        <Menu mnemonicParsing="false" text="File">
          <items>
@@ -55,7 +58,7 @@
        </Menu>
      </menus>
    </MenuBar>
-   <Button alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onMouseClicked="#importOntology" text="Import" GridPane.columnIndex="3" GridPane.halignment="CENTER" GridPane.rowIndex="1" />
+   <Button alignment="CENTER" contentDisplay="CENTER" maxHeight="10.0" mnemonicParsing="false" onMouseClicked="#importOntology" text="Import" GridPane.columnIndex="3" GridPane.halignment="CENTER" GridPane.rowIndex="1" />
     <RadioButton fx:id="chooseParametersButton" mnemonicParsing="false" selected="true" text="Choose converter automatically" GridPane.rowIndex="5">
       <GridPane.margin>
          <Insets left="20.0" />
@@ -90,7 +93,7 @@
       </GridPane.margin>
    </RadioButton>
    <ChoiceBox fx:id="converterChoiceBox" disable="${!usePredefinedConverterButton.selected}" prefHeight="26.0" prefWidth="173.0" GridPane.columnIndex="1" GridPane.rowIndex="4" />
-   <AnchorPane prefHeight="200.0" prefWidth="200.0" GridPane.columnSpan="4" GridPane.rowIndex="2">
+   <AnchorPane prefHeight="200.0" prefWidth="200.0" GridPane.columnSpan="5" GridPane.rowIndex="2">
       <children>
          <Separator layoutX="320.0" layoutY="13.0" prefWidth="200.0" AnchorPane.bottomAnchor="19.0" AnchorPane.leftAnchor="20.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="18.0" />
          <Label layoutX="54.0" layoutY="12.0" style="-fx-background-color: -fx-background;" text="Ontology-to-graph conversion options" AnchorPane.leftAnchor="20.0" AnchorPane.topAnchor="10.0">
@@ -99,7 +102,7 @@
             </padding></Label>
       </children>
    </AnchorPane>
-    <AnchorPane prefHeight="200.0" prefWidth="200.0" GridPane.columnSpan="4" GridPane.rowIndex="6">
+    <AnchorPane prefHeight="200.0" prefWidth="200.0" GridPane.columnSpan="5" GridPane.rowIndex="6">
         <children>
             <Separator layoutX="320.0" layoutY="13.0" prefWidth="200.0" AnchorPane.bottomAnchor="19.0" AnchorPane.leftAnchor="20.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="18.0" />
             <Label layoutX="54.0" layoutY="12.0" style="-fx-background-color: -fx-background;" text="Layout options" AnchorPane.leftAnchor="20.0" AnchorPane.topAnchor="10.0">
@@ -108,4 +111,16 @@
                 </padding></Label>
         </children>
     </AnchorPane>
+   <Button contentDisplay="CENTER" maxHeight="-Infinity" mnemonicParsing="false" prefHeight="26.0" GridPane.columnIndex="4" GridPane.halignment="CENTER" GridPane.rowIndex="1" onMouseClicked="#importOntologyFromFile">
+       <tooltip>
+           <Tooltip text="Import from file" />
+       </tooltip>
+       <graphic>
+           <ImageView fitHeight="18.0" preserveRatio="true">
+               <image>
+                   <Image url="file:///home/roman/Downloads/icons8-folder-24.png" />
+               </image>
+           </ImageView>
+       </graphic>
+   </Button>
 </GridPane>

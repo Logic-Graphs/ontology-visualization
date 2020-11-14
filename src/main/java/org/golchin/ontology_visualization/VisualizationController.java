@@ -9,6 +9,7 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import javafx.util.StringConverter;
+import org.apache.log4j.Logger;
 import org.golchin.ontology_visualization.metrics.BaimuratovMetric;
 import org.golchin.ontology_visualization.metrics.DegreeEntropyMetric;
 import org.golchin.ontology_visualization.metrics.GraphMetric;
@@ -27,6 +28,8 @@ import org.graphstream.ui.view.camera.Camera;
 import org.semanticweb.owlapi.model.OWLOntology;
 
 import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -36,6 +39,7 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
 
 public class VisualizationController {
+    private static final Logger LOGGER = Logger.getLogger(VisualizationController.class);
     public static final List<Supplier<Layout>> POSSIBLE_LAYOUTS =
             Arrays.asList(LinLog::new, SpringBox::new);
     public static final Map<String, Supplier<Layout>> POSSIBLE_LAYOUTS_BY_NAME =
@@ -96,6 +100,8 @@ public class VisualizationController {
 
     private final FileChooser imageFileChooser = new FileChooser();
 
+    private final FileChooser ontologyFileChooser = new FileChooser();
+
     private Graph layoutGraph;
 
     @FXML
@@ -130,6 +136,9 @@ public class VisualizationController {
                 new FileChooser.ExtensionFilter("PNG image", "*.png"),
                 new FileChooser.ExtensionFilter("JPG image", "*.jpg"),
                 new FileChooser.ExtensionFilter("BMP image", "*.bmp")
+        );
+        ontologyFileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("OWL ontology", "*.owl")
         );
         ToggleGroup toggleGroup = new ToggleGroup();
         chooseParametersButton.setToggleGroup(toggleGroup);
@@ -166,6 +175,10 @@ public class VisualizationController {
         }
         layoutAlgorithmChoiceBox.getSelectionModel().selectFirst();
         log.setEditable(false);
+    }
+
+    private Window getWindow() {
+        return log.getScene().getWindow();
     }
 
     @FXML
@@ -213,14 +226,32 @@ public class VisualizationController {
     }
 
     @FXML
+    public void importOntologyFromFile() {
+        LOGGER.error("trace");
+        File file = ontologyFileChooser.showOpenDialog(getWindow());
+        if (file != null) {
+            try {
+                URL url = file.toURI().toURL();
+                importOntology(url.toString());
+            } catch (MalformedURLException e) {
+                LOGGER.error("Unexpected import error", e);
+            }
+        }
+    }
+
+    @FXML
     public void importOntology() {
+        importOntology(url.getText());
+    }
+
+    public void importOntology(String url) {
         log.setText("");
         int degree = minDegree.getValue() == null ? 0 : minDegree.getValue();
         NodeRemovingGraphSimplifier simplifier = new NodeRemovingGraphSimplifier(degree);
         Collection<OntologyToGraphConverter> converters = new ArrayList<>(CONVERTERS_BY_NAME.values());
         String graphMetricName = graphMetricChoiceBox.getSelectionModel().selectedItemProperty().getValue();
         GraphMetric graphMetric = GRAPH_METRICS_BY_NAME.get(graphMetricName);
-        OntologyLoaderService service = new OntologyLoaderService(url.getText());
+        OntologyLoaderService service = new OntologyLoaderService(url);
         service.setOnSucceeded(e -> {
             OWLOntology ontology = (OWLOntology) e.getSource().getValue();
             if (chooseParametersButton.isSelected()) {
