@@ -198,7 +198,10 @@ public class VisualizationController {
             return;
         }
         layoutGraph.setAttribute("ui.stylesheet", NODE_STYLESHEET);
-        File file = chooser.showSaveDialog(null);
+        File file = chooser.showSaveDialog(getWindow());
+        if (file == null) {
+            return;
+        }
         service.setFileName(file.getPath());
         service.setGraph(layoutGraph);
         service.setOnSucceeded(event ->
@@ -210,8 +213,10 @@ public class VisualizationController {
 
     @FXML
     public void importGraph() {
-        Window window = log.getScene().getWindow();
-        File file = fileChooser.showOpenDialog(window);
+        File file = fileChooser.showOpenDialog(getWindow());
+        if (file == null) {
+            return;
+        }
         importService.setFileName(file.toString());
         importService.setOnSucceeded(event ->
                 graph = (Graph) event.getSource().getValue());
