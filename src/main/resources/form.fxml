@@ -118,7 +118,7 @@
        <graphic>
            <ImageView fitHeight="18.0" preserveRatio="true">
                <image>
-                   <Image url="file:///home/roman/Downloads/icons8-folder-24.png" />
+                   <Image url="/icons8-folder-24.png" />
                </image>
            </ImageView>
        </graphic>
