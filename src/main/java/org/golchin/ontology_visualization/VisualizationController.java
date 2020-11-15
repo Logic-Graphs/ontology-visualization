@@ -1,6 +1,8 @@
 package org.golchin.ontology_visualization;
 
 import com.google.common.collect.ImmutableMap;
+import javafx.beans.binding.BooleanBinding;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.Scene;
@@ -30,6 +32,7 @@ import java.net.URL;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static java.util.stream.Collectors.joining;
@@ -65,7 +68,7 @@ public class VisualizationController {
             "Ontograf", new OntografConverter(),
             "OWLViz", new OWLVizConverter());
 
-    private Graph graph;
+    private final SimpleObjectProperty<Graph> graph = new SimpleObjectProperty<>();
 
     public final ExecutorService executorService = Executors.newSingleThreadExecutor(r -> {
         Thread thread = new Thread(r);
@@ -119,6 +122,38 @@ public class VisualizationController {
 
     @FXML
     private ChoiceBox<OntologyToGraphConverter> converterChoiceBox;
+
+    private final BooleanBinding graphExists = new BooleanBinding() {
+
+        {
+            super.bind(graph);
+        }
+
+        @Override
+        protected boolean computeValue() {
+            return graph.get() != null;
+        }
+    };
+
+    public Graph getGraph() {
+        return graph.get();
+    }
+
+    public void setGraph(Graph graph) {
+        this.graph.set(graph);
+    }
+
+    public SimpleObjectProperty<Graph> graphProperty() {
+        return graph;
+    }
+
+    public final boolean isGraphExists() {
+        return graphExists.get();
+    }
+
+    public BooleanBinding graphExistsProperty() {
+        return graphExists;
+    }
 
     @FXML
     public void initialize() {
@@ -181,27 +216,29 @@ public class VisualizationController {
 
     @FXML
     public void exportToImage() {
-        export(exportToImageService, imageFileChooser);
+        Runnable exportAction = () -> {
+            layoutGraph.setAttribute("ui.stylesheet", NODE_STYLESHEET);
+            doExport(exportToImageService, imageFileChooser, layoutGraph);
+        };
+        if (layoutGraph == null) {
+            chooseLayoutAndVisualize(getGraph(), g -> exportAction.run());
+        } else {
+            exportAction.run();
+        }
     }
 
 
     public void exportGraph() {
-        export(exportToDOTService, fileChooser);
+        doExport(exportToDOTService, fileChooser, getGraph());
     }
 
-    private void export(GraphExportService service, FileChooser chooser) {
-        if (layoutGraph == null) {
-            // fixme maybe use SimpleObjectProperty for graph?
-            new Alert(Alert.AlertType.ERROR, "No layout has been computed").show();
-            return;
-        }
-        layoutGraph.setAttribute("ui.stylesheet", NODE_STYLESHEET);
+    private void doExport(GraphExportService service, FileChooser chooser, Graph graph) {
         File file = chooser.showSaveDialog(getWindow());
         if (file == null) {
             return;
         }
         service.setFileName(file.getPath());
-        service.setGraph(layoutGraph);
+        service.setGraph(graph);
         service.setOnSucceeded(event ->
                 new Alert(Alert.AlertType.INFORMATION, "Visualization successfully exported").show());
         service.setOnFailed(event ->
@@ -217,7 +254,7 @@ public class VisualizationController {
         }
         importService.setFileName(file.toString());
         importService.setOnSucceeded(event ->
-                graph = (Graph) event.getSource().getValue());
+                setGraph((Graph) event.getSource().getValue()));
         importService.setOnFailed(event -> {
             Throwable exception = event.getSource().getException();
             if (exception != null) {
@@ -230,7 +267,6 @@ public class VisualizationController {
 
     @FXML
     public void importOntologyFromFile() {
-        LOGGER.error("trace");
         File file = ontologyFileChooser.showOpenDialog(getWindow());
         if (file != null) {
             try {
@@ -248,6 +284,7 @@ public class VisualizationController {
     }
 
     public void importOntology(String url) {
+        layoutGraph = null;
         log.setText("");
         int degree = minDegree.getValue() == null ? 0 : minDegree.getValue();
         NodeRemovingGraphSimplifier simplifier = new NodeRemovingGraphSimplifier(degree);
@@ -269,7 +306,7 @@ public class VisualizationController {
                 task.setOnSucceeded(event -> {
                     EvaluatedGraph evaluatedGraph = (EvaluatedGraph) event.getSource().getValue();
                     logParameterChoice(evaluatedGraph);
-                    graph = evaluatedGraph.getGraph();
+                    setGraph(evaluatedGraph.getGraph());
                 });
             } else {
                 OntologyToGraphConverter converter = converterChoiceBox.getValue();
@@ -282,8 +319,8 @@ public class VisualizationController {
 
     @FXML
     public void visualize() {
-        if (graph != null) {
-            chooseLayoutAndVisualize(graph);
+        if (getGraph() != null) {
+            chooseLayoutAndVisualize(getGraph(), this::visualize);
         }
     }
 
@@ -299,7 +336,7 @@ public class VisualizationController {
         appendToLog("Chose " + bestConverter);
     }
 
-    private void chooseLayoutAndVisualize(Graph graph) {
+    private void chooseLayoutAndVisualize(Graph graph, Consumer<Graph> action) {
         if (usePredefinedAlgorithmButton.isSelected()) {
             Task<Graph> task = new Task<Graph>() {
                 @Override
@@ -310,7 +347,7 @@ public class VisualizationController {
             executorService.submit(task);
             task.setOnSucceeded(event -> {
                 layoutGraph = (Graph) event.getSource().getValue();
-                visualize(layoutGraph);
+                action.accept(layoutGraph);
             });
             return;
         }
@@ -331,7 +368,7 @@ public class VisualizationController {
                     .collect(joining("\n", "", "\nChose " + name));
             appendToLog(summary);
             layoutGraph = evaluatedLayout.getBestLayout();
-            visualize(layoutGraph);
+            action.accept(layoutGraph);
         });
         layoutChooserService.setOnFailed(workerStateEvent ->
                 log.setText(workerStateEvent.getSource().getException().getMessage()));
@@ -376,7 +413,7 @@ public class VisualizationController {
         protected Graph call() {
             MultiGraph multiGraph = converter.convert(ontology);
             simplifier.simplify(multiGraph);
-            graph = multiGraph;
+            setGraph(multiGraph);
             return multiGraph;
         }
     }
