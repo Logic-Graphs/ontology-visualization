@@ -38,8 +38,10 @@ public class LayoutChooser {
         layout.addAttributeSink(copy);
         graph.nodes().forEach(node -> {
             Node n = copy.addNode(node.getId());
-            Object label = node.getAttribute("label");
-            n.setAttribute("label", label);
+            node.attributeKeys().forEach(key -> {
+                Object value = node.getAttribute(key);
+                n.setAttribute(key, value);
+            });
         });
         graph.edges().forEach(edge -> {
             Node source = copy.getNode(edge.getNode0().getId());

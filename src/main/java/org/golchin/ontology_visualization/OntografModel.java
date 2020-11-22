@@ -10,8 +10,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static org.golchin.ontology_visualization.ConversionUtils.getOWLObjectLabel;
-
 /**
  * Adapted from sources of Ontograf Protege plugin: org.protege.ontograf.common.ProtegeGraphModel.
  */

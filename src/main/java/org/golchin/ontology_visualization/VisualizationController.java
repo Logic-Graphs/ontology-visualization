@@ -5,8 +5,12 @@ import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
+import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.layout.*;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.Window;
@@ -381,16 +385,49 @@ public class VisualizationController {
         View view = fxViewer.getDefaultView();
         Camera camera = view.getCamera();
 
-        panel.setMouseManager(new PanningMouseManager(panel, camera, layoutGraph));
+        Text text = new Text("");
+        text.setWrappingWidth(180.);
+//        text.setTextAlignment(TextAlignment.CENTER);
+        TextFlow textFlow = new TextFlow();
+        panel.setMouseManager(new PanningMouseManager(panel, textFlow, camera, layoutGraph));
         panel.setOnScroll(event -> {
             double delta = 0.05;
-            if (event.getDeltaY() > 0)
+            if (event.getDeltaY() > 0) {
                 delta = -delta;
+            }
             camera.setViewPercent(camera.getViewPercent() + delta);
         });
 
         Stage stage = new Stage();
-        stage.setScene(new Scene(panel));
+        VBox textVBox = new VBox(textFlow);
+        textVBox.setPadding(new Insets(10));
+//        textVBox.setMinWidth(200.);
+//        textVBox.setMaxWidth(200.);
+        Button hide = new Button("H");
+//        HBox hBox = new HBox(panel, hide, vBox);
+        BorderPane borderPane = new BorderPane();
+        borderPane.setLeft(panel);
+        borderPane.setRight(textVBox);
+        GridPane pane = new GridPane();
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setPercentWidth(80);
+//        ColumnConstraints col2 = new ColumnConstraints();
+//        col1.setPercentWidth(2);
+        ColumnConstraints col3 = new ColumnConstraints();
+        col3.setPercentWidth(20);
+        pane.getColumnConstraints().addAll(col1, col3);
+        RowConstraints rowConstraints = new RowConstraints();
+        rowConstraints.setVgrow(Priority.ALWAYS);
+        pane.getRowConstraints().addAll(rowConstraints);
+        pane.add(panel, 0, 0);
+//        pane.add(hide, 1, 0);
+        pane.add(textVBox, 1, 0);
+
+        hide.setOnAction(event -> {
+            textVBox.setVisible(!textVBox.isVisible());
+            textVBox.setManaged(!textVBox.isManaged());
+        });
+        stage.setScene(new Scene(pane));
         stage.show();
     }
 
