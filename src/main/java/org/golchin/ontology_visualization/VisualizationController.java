@@ -380,14 +380,13 @@ public class VisualizationController {
 
     private void visualize(Graph layoutGraph) {
         layoutGraph.setAttribute("ui.stylesheet", STYLESHEET);
-        FxViewer fxViewer = new FxViewer(layoutGraph, Viewer.ThreadingModel.GRAPH_IN_ANOTHER_THREAD);
+        FxViewer fxViewer = new FxViewer(layoutGraph, Viewer.ThreadingModel.GRAPH_IN_GUI_THREAD);
         FxViewPanel panel = (FxViewPanel) fxViewer.addDefaultView(false);
         View view = fxViewer.getDefaultView();
         Camera camera = view.getCamera();
 
         Text text = new Text("");
         text.setWrappingWidth(180.);
-//        text.setTextAlignment(TextAlignment.CENTER);
         TextFlow textFlow = new TextFlow();
         panel.setMouseManager(new PanningMouseManager(panel, textFlow, camera, layoutGraph));
         panel.setOnScroll(event -> {
@@ -401,18 +400,13 @@ public class VisualizationController {
         Stage stage = new Stage();
         VBox textVBox = new VBox(textFlow);
         textVBox.setPadding(new Insets(10));
-//        textVBox.setMinWidth(200.);
-//        textVBox.setMaxWidth(200.);
         Button hide = new Button("H");
-//        HBox hBox = new HBox(panel, hide, vBox);
         BorderPane borderPane = new BorderPane();
         borderPane.setLeft(panel);
         borderPane.setRight(textVBox);
         GridPane pane = new GridPane();
         ColumnConstraints col1 = new ColumnConstraints();
         col1.setPercentWidth(80);
-//        ColumnConstraints col2 = new ColumnConstraints();
-//        col1.setPercentWidth(2);
         ColumnConstraints col3 = new ColumnConstraints();
         col3.setPercentWidth(20);
         pane.getColumnConstraints().addAll(col1, col3);
@@ -420,7 +414,6 @@ public class VisualizationController {
         rowConstraints.setVgrow(Priority.ALWAYS);
         pane.getRowConstraints().addAll(rowConstraints);
         pane.add(panel, 0, 0);
-//        pane.add(hide, 1, 0);
         pane.add(textVBox, 1, 0);
 
         hide.setOnAction(event -> {

@@ -28,6 +28,7 @@ public abstract class OntologyGraphModelBase {
         }
         provider = new AssertedClassHierarchyProvider(ontologyManager);
         provider.setOntologies(Collections.singleton(ontology));
+        graph.setAttribute("annotations", ConversionUtils.getAnnotationValues(ontology));
     }
 
     public String getOWLObjectLabel(OWLObject owlObject) {

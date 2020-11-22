@@ -58,6 +58,10 @@ public class PanningMouseManager extends FxMouseOverMouseManager {
                     camera.setViewCenter(viewCenter.x - deltaGu.x, viewCenter.y - deltaGu.y, viewCenter.z);
                     curPoint = new Point3(e.getX(), e.getY(), 0);
                 }));
+        Map<IRI, List<String>> graphAnnotations = (Map<IRI, List<String>>) this.graph.getAttribute("annotations");
+        String titleAndDescription = graphAnnotations == null ? "" : createTitleAndDescription(graphAnnotations);
+        Text titleAndDescriptionText = new Text(titleAndDescription);
+        this.text.getChildren().add(titleAndDescriptionText);
         panel.addListener(MOUSE_PRESSED,
                 (EventHandler<MouseEvent>) e -> {
                     curPoint = new Point3(e.getX(), e.getY(), 0);
@@ -71,6 +75,7 @@ public class PanningMouseManager extends FxMouseOverMouseManager {
                         Map<IRI, List<String>> annotations = (Map<IRI, List<String>>) node.getAttribute("annotations");
                         if (annotations != null) {
                             this.text.getChildren().clear();
+                            this.text.getChildren().add(titleAndDescriptionText);
                             this.text.getChildren().addAll(createTextFromAnnotations(annotations));
                         }
                     }
@@ -94,6 +99,22 @@ public class PanningMouseManager extends FxMouseOverMouseManager {
                 prevElement[0] = chosenElement;
             }
         }));
+    }
+
+    private String createTitleAndDescription(Map<IRI, List<String>> annotations) {
+        StringBuilder stringBuilder = new StringBuilder();
+        addAnnotationValue(annotations, stringBuilder, "http://purl.org/dc/elements/1.1/title");
+        addAnnotationValue(annotations, stringBuilder, "http://purl.org/dc/elements/1.1/description");
+        return stringBuilder.toString();
+    }
+
+    private void addAnnotationValue(Map<IRI, List<String>> annotations, StringBuilder stringBuilder, String s) {
+        List<String> values = annotations.get(IRI.create(s));
+        if (values != null && !values.isEmpty()) {
+            String value = ConversionUtils.unquote(values.iterator().next());
+            stringBuilder.append(value)
+                    .append("\n\n");
+        }
     }
 
     static Hyperlink createBrowserLink(String text, String url) {

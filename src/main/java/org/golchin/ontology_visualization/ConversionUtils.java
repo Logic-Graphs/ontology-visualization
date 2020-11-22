@@ -40,12 +40,19 @@ public class ConversionUtils {
         }
     }
 
+    public static Map<IRI, List<String>> getAnnotationValues(Collection<OWLAnnotation> annotations) {
+        return annotations.stream()
+                .collect(groupingBy(annotation -> annotation.getProperty().getIRI(),
+                        mapping(annotation -> annotation.annotationValue().toString(), toList())));
+    }
+
+    public static Map<IRI, List<String>> getAnnotationValues(OWLOntology ontology) {
+        return getAnnotationValues(ontology.getAnnotations());
+    }
+
     public static Map<IRI, List<String>> getAnnotationValues(OWLOntology ontology, OWLObject owlObject) {
         if (owlObject instanceof OWLEntity) {
-            return EntitySearcher.getAnnotations((OWLEntity) owlObject, ontology)
-                    .stream()
-                    .collect(groupingBy(annotation -> annotation.getProperty().getIRI(),
-                            mapping(annotation -> annotation.annotationValue().toString(), toList())));
+            return getAnnotationValues(EntitySearcher.getAnnotations((OWLEntity) owlObject, ontology));
         }
         return Collections.emptyMap();
     }
