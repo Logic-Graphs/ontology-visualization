@@ -95,7 +95,7 @@ public class VisualizationController {
     @FXML
     private Spinner<Integer> minDegree;
 
-    private final GraphImportService importService = new GraphImportService();
+    private final GraphImportFromDOTService importService = new GraphImportFromDOTService();
 
     private final FileChooser fileChooser = new FileChooser();
 
@@ -108,6 +108,10 @@ public class VisualizationController {
     private final FileChooser ontologyFileChooser = new FileChooser();
 
     private Graph layoutGraph;
+
+    private final GraphSaver graphSaver = new GraphSaver();
+
+    private final SavedGraphImportService graphImporterService = new SavedGraphImportService();
 
     @FXML
     private RadioButton chooseParametersButton;
@@ -287,14 +291,39 @@ public class VisualizationController {
         importOntology(url.getText());
     }
 
+    private ConversionSettings getConversionSettings(String graphMetricName) {
+        if (chooseParametersButton.isSelected()) {
+            return new ConversionSettings(null, graphMetricName);
+        }
+        OntologyToGraphConverter converter = converterChoiceBox.getValue();
+        return new ConversionSettings(converter.toString(), null);
+    }
+
     public void importOntology(String url) {
         layoutGraph = null;
         log.setText("");
+        String graphMetricName = graphMetricChoiceBox.getSelectionModel().selectedItemProperty().getValue();
+        ConversionSettings settings = getConversionSettings(graphMetricName);
+        graphImporterService.setConversionSettings(settings);
+        graphImporterService.setOntologyIri(url);
+        graphImporterService.setOnSucceeded(event -> {
+            Graph graph = (Graph) event.getSource().getValue();
+            if (graph == null) {
+                importOntology(url, graphMetricName, settings);
+            } else {
+                appendToLog("Loaded previously saved graph");
+                setGraph(graph);
+            }
+        });
+        graphImporterService.setOnFailed(event -> importOntology(url, graphMetricName, settings));
+        graphImporterService.restart();
+    }
+
+    private void importOntology(String url, String graphMetricName, ConversionSettings settings) {
+        GraphMetric graphMetric = GRAPH_METRICS_BY_NAME.get(graphMetricName);
         int degree = minDegree.getValue() == null ? 0 : minDegree.getValue();
         NodeRemovingGraphSimplifier simplifier = new NodeRemovingGraphSimplifier(degree);
         Collection<OntologyToGraphConverter> converters = new ArrayList<>(CONVERTERS_BY_NAME.values());
-        String graphMetricName = graphMetricChoiceBox.getSelectionModel().selectedItemProperty().getValue();
-        GraphMetric graphMetric = GRAPH_METRICS_BY_NAME.get(graphMetricName);
         OntologyLoaderService service = new OntologyLoaderService(url);
         service.setOnSucceeded(e -> {
             OWLOntology ontology = (OWLOntology) e.getSource().getValue();
@@ -310,11 +339,19 @@ public class VisualizationController {
                 task.setOnSucceeded(event -> {
                     EvaluatedGraph evaluatedGraph = (EvaluatedGraph) event.getSource().getValue();
                     logParameterChoice(evaluatedGraph);
-                    setGraph(evaluatedGraph.getGraph());
+                    Graph graph = evaluatedGraph.getGraph();
+                    graphSaver.saveGraph(graph, url, settings);
+                    setGraph(graph);
                 });
             } else {
                 OntologyToGraphConverter converter = converterChoiceBox.getValue();
-                executorService.submit(new ConversionTask(ontology, converter, simplifier));
+                ConversionTask task = new ConversionTask(ontology, converter, simplifier);
+                executorService.submit(task);
+                task.setOnSucceeded(event -> {
+                    Graph graph = (Graph) event.getSource().getValue();
+                    setGraph(graph);
+                    graphSaver.saveGraph(graph, url, settings);
+                });
             }
         });
         service.setOnFailed(e -> log.setText(e.getSource().getException().getMessage()));
@@ -428,7 +465,7 @@ public class VisualizationController {
         log.setText(log.getText() + line + "\n");
     }
 
-    class ConversionTask extends Task<Graph> {
+    static class ConversionTask extends Task<Graph> {
         private final OWLOntology ontology;
         private final OntologyToGraphConverter converter;
         private final GraphSimplifier simplifier;
@@ -443,7 +480,6 @@ public class VisualizationController {
         protected Graph call() {
             MultiGraph multiGraph = converter.convert(ontology);
             simplifier.simplify(multiGraph);
-            setGraph(multiGraph);
             return multiGraph;
         }
     }

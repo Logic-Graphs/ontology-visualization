@@ -63,7 +63,10 @@ public class ConversionUtils {
             if (annotations.isEmpty())
                 return null;
             OWLAnnotation annotation = annotations.iterator().next();
-            String stringValue = annotation.annotationValue().toString();
+            OWLAnnotationValue owlAnnotationValue = annotation.annotationValue();
+            String stringValue = owlAnnotationValue.asLiteral()
+                    .transform(OWLLiteral::getLiteral)
+                    .or(owlAnnotationValue.toString());
             return unquote(stringValue);
         }
         return null;
