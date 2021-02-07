@@ -17,14 +17,11 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.*;
 import java.util.stream.Stream;
 
 public class MetricCombinations extends Application {
+    public static final NodeRemovingGraphSimplifier GRAPH_SIMPLIFIER = new NodeRemovingGraphSimplifier(0);
     static Map<String, String> urlById =
             ImmutableMap.of(
                     "foaf", "http://xmlns.com/foaf/spec/index.rdf",
@@ -40,20 +37,16 @@ public class MetricCombinations extends Application {
     }
 
     private static void visualize(OWLOntology ontology, String id, GraphMetric graphMetric, LayoutMetric layoutMetric, List<String> lines) {
-        Collection<? extends OntologyToGraphConverter> converters =
-                VisualizationController.getConvertersWithParameterCombinations(VisualizationController.PARAMETERS, 0);
-        EvaluatedGraph evaluatedGraph = new GraphChooser(ontology, converters, graphMetric).choose();
+        Collection<? extends OntologyToGraphConverter> converters = Arrays.asList(new OWLVizConverter(), new OntografConverter());
+        EvaluatedGraph evaluatedGraph = new GraphChooser(ontology, converters, GRAPH_SIMPLIFIER, graphMetric).choose();
         Graph graph = evaluatedGraph.getGraph();
         EvaluatedLayout evaluatedLayout = new LayoutChooser(graph, VisualizationController.POSSIBLE_LAYOUTS, 5, layoutMetric)
                 .chooseLayout();
         Graph layoutGraph = evaluatedLayout.getBestLayout();
         String graphMetricName = graphMetric.getClass().getSimpleName();
         String layoutMetricName = layoutMetric.getClass().getSimpleName();
-        String parameterValues = evaluatedGraph.getBestParameters().values().stream().map(Object::toString).collect(Collectors.joining(","));
-        String parameterNames = evaluatedGraph.getBestParameters().keySet().stream().map(Object::toString).collect(Collectors.joining(","));
-        String line = String.format("%s,%s,%s,%s,%s", id, graphMetricName, layoutMetricName,
-                parameterValues, evaluatedLayout.getName());
-        String header = "id,graphMetricName,layoutMetricName," + parameterNames + ",layoutAlgorithm";
+        String line = String.format("%s,%s,%s,%s,%s", id, graphMetricName, layoutMetricName, evaluatedGraph.getBestConverter(), evaluatedLayout.getName());
+        String header = "id,graphMetricName,layoutMetricName,converter,layoutAlgorithm";
         if (lines.isEmpty())
             lines.add(header);
         lines.add(line);

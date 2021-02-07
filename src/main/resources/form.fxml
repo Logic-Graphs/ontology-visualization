@@ -2,24 +2,25 @@
 
 <?import javafx.geometry.*?>
 <?import javafx.scene.control.*?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.*?>
-<GridPane fx:id="gridPane" hgap="20.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="700.0" prefWidth="800.0" vgap="10.0" xmlns="http://javafx.com/javafx/10.0.2-internal" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.golchin.ontology_visualization.VisualizationController">
+<GridPane fx:id="gridPane" hgap="10.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="700.0" prefWidth="900.0" vgap="10.0" xmlns="http://javafx.com/javafx/10.0.2-internal" xmlns:fx="http://javafx.com/fxml/1" fx:controller="org.golchin.ontology_visualization.VisualizationController">
     <columnConstraints>
         <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="39.0" prefWidth="100.0" />
         <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="23.0" prefWidth="100.0" />
       <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="23.0" prefWidth="100.0" />
-        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="15.0" prefWidth="100.0" />
+        <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="11.0" prefWidth="100.0" />
+      <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" percentWidth="6.0" prefWidth="100.0" />
     </columnConstraints>
     <rowConstraints>
       <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="40.0" vgrow="SOMETIMES" />
         <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="40.0" vgrow="SOMETIMES" />
-        <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="10.0" vgrow="SOMETIMES" />
       <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="40.0" vgrow="SOMETIMES" />
         <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="40.0" vgrow="SOMETIMES" />
-        <RowConstraints maxHeight="75.0" minHeight="10.0" prefHeight="75.0" vgrow="SOMETIMES" />
+      <RowConstraints maxHeight="30.0" minHeight="10.0" prefHeight="30.0" vgrow="SOMETIMES" />
         <RowConstraints maxHeight="33.0" minHeight="10.0" prefHeight="16.0" vgrow="SOMETIMES" />
-      <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="10.0" vgrow="SOMETIMES" />
-      <RowConstraints maxHeight="-Infinity" minHeight="30.0" prefHeight="30.0" vgrow="SOMETIMES" />
+      <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="40.0" vgrow="SOMETIMES" />
       <RowConstraints maxHeight="-Infinity" minHeight="30.0" prefHeight="30.0" vgrow="SOMETIMES" />
       <RowConstraints maxHeight="-Infinity" minHeight="10.0" prefHeight="40.0" vgrow="SOMETIMES" />
       <RowConstraints minHeight="10.0" prefHeight="100.0" vgrow="SOMETIMES" />
@@ -34,81 +35,92 @@
           <Insets left="20.0" />
         </GridPane.margin>
     </Label>
-    <Label prefHeight="16.0" prefWidth="267.0" text="Remove nodes with degree less than" GridPane.rowIndex="4">
+    <Label prefHeight="16.0" prefWidth="267.0" text="Remove nodes with degree less than" GridPane.rowIndex="3">
       <GridPane.margin>
          <Insets left="20.0" />
       </GridPane.margin>
     </Label>
-    <Button alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onMouseClicked="#visualize" text="Visualize" GridPane.columnIndex="3" GridPane.halignment="CENTER" GridPane.rowIndex="10" />
-    <Spinner fx:id="minDegree" GridPane.columnIndex="1" GridPane.rowIndex="4" />
-    <TextArea fx:id="log" prefHeight="184.0" prefWidth="600.0" GridPane.columnSpan="4" GridPane.rowIndex="11">
+    <Button alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onMouseClicked="#visualize" text="Visualize" GridPane.columnIndex="3" GridPane.columnSpan="2" GridPane.halignment="CENTER" GridPane.rowIndex="8" disable="${!controller.graphExists}"/>
+    <Spinner fx:id="minDegree" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+    <TextArea fx:id="log" prefHeight="184.0" prefWidth="600.0" GridPane.columnSpan="5" GridPane.rowIndex="9">
         <GridPane.margin>
             <Insets bottom="5.0" left="5.0" right="5.0" />
         </GridPane.margin>
     </TextArea>
-   <MenuBar GridPane.columnSpan="4" GridPane.valignment="TOP">
+   <MenuBar GridPane.columnSpan="5" GridPane.valignment="TOP">
      <menus>
        <Menu mnemonicParsing="false" text="File">
          <items>
            <MenuItem mnemonicParsing="false" onAction="#importGraph" text="Import graph" />
-           <MenuItem mnemonicParsing="false" onAction="#exportGraph" text="Export graph" />
-           <MenuItem mnemonicParsing="false" onAction="#exportToImage" text="Export to image" />
+           <MenuItem mnemonicParsing="false" onAction="#exportGraph" text="Export graph" disable="${!controller.graphExists}"/>
+           <MenuItem mnemonicParsing="false" onAction="#exportToImage" text="Export to image" disable="${!controller.graphExists}" />
          </items>
        </Menu>
      </menus>
    </MenuBar>
-   <Button alignment="CENTER" contentDisplay="CENTER" mnemonicParsing="false" onMouseClicked="#importOntology" text="Import" GridPane.columnIndex="3" GridPane.halignment="CENTER" GridPane.rowIndex="1" />
-   <RadioButton fx:id="explicitlySetParametersButton" mnemonicParsing="false" text="Explicitly set parameters" GridPane.rowIndex="5">
-      <padding>
-         <Insets left="20.0" />
-      </padding>
-   </RadioButton>
-    <ScrollPane fx:id="scrollPane" prefHeight="200.0" prefWidth="200.0" GridPane.columnIndex="1" GridPane.columnSpan="2" GridPane.rowIndex="5" disable="${!explicitlySetParametersButton.selected}"/>
-    <RadioButton fx:id="chooseParametersButton" mnemonicParsing="false" text="Choose parameters automatically" GridPane.rowIndex="6" selected="true">
+   <Button alignment="CENTER" contentDisplay="CENTER" maxHeight="10.0" mnemonicParsing="false" onMouseClicked="#importOntology" text="Import" GridPane.columnIndex="3" GridPane.halignment="CENTER" GridPane.rowIndex="1" />
+    <RadioButton fx:id="chooseParametersButton" mnemonicParsing="false" selected="true" text="Choose converter automatically" GridPane.rowIndex="5">
       <GridPane.margin>
          <Insets left="20.0" />
       </GridPane.margin>
    </RadioButton>
-    <Label prefHeight="16.0" prefWidth="186.0" text="Graph metric" GridPane.columnIndex="1" GridPane.rowIndex="6" disable="${!chooseParametersButton.selected}"/>
-    <ChoiceBox fx:id="graphMetricChoiceBox" prefHeight="26.0" prefWidth="195.0" GridPane.columnIndex="2" GridPane.rowIndex="6" disable="${!chooseParametersButton.selected}"/>
-    <Separator prefHeight="4.0" prefWidth="394.0" GridPane.columnSpan="4" GridPane.rowIndex="2">
-      <GridPane.margin>
-         <Insets left="5.0" right="5.0" />
-      </GridPane.margin>
-   </Separator>
-   <Separator prefWidth="200.0" GridPane.columnSpan="4" GridPane.rowIndex="7">
-      <GridPane.margin>
-         <Insets left="5.0" right="5.0" />
-      </GridPane.margin>
-   </Separator>
-   <Label text="Ontology-to-graph conversion options" GridPane.rowIndex="3">
-      <padding>
-         <Insets left="20.0" />
-      </padding>
-   </Label>
-   <Label text="Layout options" GridPane.rowIndex="8">
-      <GridPane.margin>
-         <Insets left="20.0" />
-      </GridPane.margin></Label>
-   <RadioButton fx:id="chooseLayoutAutomaticallyButton" selected="true" mnemonicParsing="false" text="Choose layout automatically" GridPane.rowIndex="10">
+    <Label disable="${!chooseParametersButton.selected}" prefHeight="16.0" prefWidth="186.0" text="Graph metric" GridPane.columnIndex="1" GridPane.rowIndex="5" />
+    <ChoiceBox fx:id="graphMetricChoiceBox" disable="${!chooseParametersButton.selected}" prefHeight="26.0" prefWidth="195.0" GridPane.columnIndex="2" GridPane.rowIndex="5" />
+   <RadioButton fx:id="chooseLayoutAutomaticallyButton" mnemonicParsing="false" selected="true" text="Choose layout automatically" GridPane.rowIndex="8">
       <padding>
          <Insets left="20.0" />
       </padding>
    </RadioButton>
-    <Label prefHeight="16.0" prefWidth="178.0" text="Layout metric" GridPane.columnIndex="1" GridPane.rowIndex="10" disable="${!chooseLayoutAutomaticallyButton.selected}">
+    <Label disable="${!chooseLayoutAutomaticallyButton.selected}" prefHeight="16.0" prefWidth="178.0" text="Layout metric" GridPane.columnIndex="1" GridPane.rowIndex="8">
         <GridPane.margin>
             <Insets />
         </GridPane.margin>
     </Label>
-    <ChoiceBox fx:id="metricChoiceBox" prefHeight="26.0" prefWidth="195.0" GridPane.columnIndex="2" GridPane.rowIndex="10" disable="${!chooseLayoutAutomaticallyButton.selected}">
+    <ChoiceBox fx:id="metricChoiceBox" disable="${!chooseLayoutAutomaticallyButton.selected}" prefHeight="26.0" prefWidth="195.0" GridPane.columnIndex="2" GridPane.rowIndex="8">
         <GridPane.margin>
             <Insets />
         </GridPane.margin>
     </ChoiceBox>
-    <RadioButton fx:id="usePredefinedAlgorithmButton" mnemonicParsing="false" text="Use predefined algorithm" GridPane.rowIndex="9">
+    <RadioButton fx:id="usePredefinedAlgorithmButton" mnemonicParsing="false" text="Use predefined algorithm" GridPane.rowIndex="7">
       <GridPane.margin>
          <Insets left="20.0" />
       </GridPane.margin>
    </RadioButton>
-   <ChoiceBox fx:id="layoutAlgorithmChoiceBox" prefHeight="26.0" prefWidth="172.0" GridPane.columnIndex="1" GridPane.rowIndex="9" disable="${!usePredefinedAlgorithmButton.selected}"/>
+   <ChoiceBox fx:id="layoutAlgorithmChoiceBox" disable="${!usePredefinedAlgorithmButton.selected}" prefHeight="26.0" prefWidth="172.0" GridPane.columnIndex="1" GridPane.rowIndex="7" />
+   <RadioButton fx:id="usePredefinedConverterButton" mnemonicParsing="false" text="Use predefined converter" GridPane.rowIndex="4">
+      <GridPane.margin>
+         <Insets left="20.0" />
+      </GridPane.margin>
+   </RadioButton>
+   <ChoiceBox fx:id="converterChoiceBox" disable="${!usePredefinedConverterButton.selected}" prefHeight="26.0" prefWidth="173.0" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+   <AnchorPane prefHeight="200.0" prefWidth="200.0" GridPane.columnSpan="5" GridPane.rowIndex="2">
+      <children>
+         <Separator layoutX="320.0" layoutY="13.0" prefWidth="200.0" AnchorPane.bottomAnchor="19.0" AnchorPane.leftAnchor="20.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="18.0" />
+         <Label layoutX="54.0" layoutY="12.0" style="-fx-background-color: -fx-background;" text="Ontology-to-graph conversion options" AnchorPane.leftAnchor="20.0" AnchorPane.topAnchor="10.0">
+            <padding>
+               <Insets right="5.0" />
+            </padding></Label>
+      </children>
+   </AnchorPane>
+    <AnchorPane prefHeight="200.0" prefWidth="200.0" GridPane.columnSpan="5" GridPane.rowIndex="6">
+        <children>
+            <Separator layoutX="320.0" layoutY="13.0" prefWidth="200.0" AnchorPane.bottomAnchor="19.0" AnchorPane.leftAnchor="20.0" AnchorPane.rightAnchor="10.0" AnchorPane.topAnchor="18.0" />
+            <Label layoutX="54.0" layoutY="12.0" style="-fx-background-color: -fx-background;" text="Layout options" AnchorPane.leftAnchor="20.0" AnchorPane.topAnchor="10.0">
+                <padding>
+                    <Insets right="5.0" />
+                </padding></Label>
+        </children>
+    </AnchorPane>
+   <Button contentDisplay="CENTER" maxHeight="-Infinity" mnemonicParsing="false" prefHeight="26.0" GridPane.columnIndex="4" GridPane.halignment="CENTER" GridPane.rowIndex="1" onMouseClicked="#importOntologyFromFile">
+       <tooltip>
+           <Tooltip text="Import from file" />
+       </tooltip>
+       <graphic>
+           <ImageView fitHeight="18.0" preserveRatio="true">
+               <image>
+                   <Image url="/icons8-folder-24.png" />
+               </image>
+           </ImageView>
+       </graphic>
+   </Button>
 </GridPane>

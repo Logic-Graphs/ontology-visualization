@@ -1,20 +1,22 @@
 package org.golchin.ontology_visualization;
 
 import com.google.common.collect.ImmutableMap;
-import javafx.beans.property.ObjectProperty;
+import javafx.beans.binding.BooleanBinding;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
-import javafx.scene.layout.GridPane;
+import javafx.scene.layout.*;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 import javafx.util.StringConverter;
-import org.golchin.ontology_visualization.metrics.BaimuratovMetric;
-import org.golchin.ontology_visualization.metrics.DegreeEntropyMetric;
-import org.golchin.ontology_visualization.metrics.GraphMetric;
+import org.apache.log4j.Logger;
+import org.golchin.ontology_visualization.metrics.*;
 import org.golchin.ontology_visualization.metrics.layout.*;
 import org.graphstream.graph.Graph;
 import org.graphstream.graph.implementations.MultiGraph;
@@ -29,16 +31,19 @@ import org.graphstream.ui.view.camera.Camera;
 import org.semanticweb.owlapi.model.OWLOntology;
 
 import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toMap;
 
 public class VisualizationController {
+    private static final Logger LOGGER = Logger.getLogger(VisualizationController.class);
     public static final List<Supplier<Layout>> POSSIBLE_LAYOUTS =
             Arrays.asList(LinLog::new, SpringBox::new);
     public static final Map<String, Supplier<Layout>> POSSIBLE_LAYOUTS_BY_NAME =
@@ -46,9 +51,9 @@ public class VisualizationController {
 
     public static final Map<String, LayoutMetric> METRICS_BY_NAME = new LinkedHashMap<>();
     public static final String EDGE_STYLESHEET = "edge { text-visibility-mode: hidden; text-visibility: 0.5;  }";
-    public static final String NODE_STYLESHEET = "node { size-mode: fit; text-alignment: center; fill-color: green; shape: box; }";
+    public static final String NODE_STYLESHEET = "node { size-mode: fit; text-alignment: center; fill-color: rgb(170, 204, 255); shape: box; text-offset: 5, -2; }";
     private static final String STYLESHEET = EDGE_STYLESHEET + " " + NODE_STYLESHEET;
-    public static final List<Parameter<?>> PARAMETERS = Arrays.asList(OntologyToGraphConverterImpl.MERGE_EQUIVALENT, OntologyToGraphConverterImpl.MULTIPLY_DATATYPES);
+
     static {
         METRICS_BY_NAME.put("Number of crossings", new NumberOfCrossings());
         METRICS_BY_NAME.put("Crossings angle resolution", new CrossingAngleResolution());
@@ -60,9 +65,14 @@ public class VisualizationController {
 
     private static final Map<String, GraphMetric> GRAPH_METRICS_BY_NAME = ImmutableMap.of(
             "Entropy", new DegreeEntropyMetric(),
-            "Baimuratov et al.", new BaimuratovMetric());
+            "Baimuratov et al.", new BaimuratovMetric(),
+            "Hosoya entropy", new HosoyaEntropyMetric(),
+            "Adjacency matrix energy", new AdjacencyMatrixEnergy());
+    private static final Map<String, OntologyToGraphConverter> CONVERTERS_BY_NAME = ImmutableMap.of(
+            "Ontograf", new OntografConverter(),
+            "OWLViz", new OWLVizConverter());
 
-    private Graph graph;
+    private final SimpleObjectProperty<Graph> graph = new SimpleObjectProperty<>();
 
     public final ExecutorService executorService = Executors.newSingleThreadExecutor(r -> {
         Thread thread = new Thread(r);
@@ -85,7 +95,7 @@ public class VisualizationController {
     @FXML
     private Spinner<Integer> minDegree;
 
-    private final GraphImportService importService = new GraphImportService();
+    private final GraphImportFromDOTService importService = new GraphImportFromDOTService();
 
     private final FileChooser fileChooser = new FileChooser();
 
@@ -95,13 +105,13 @@ public class VisualizationController {
 
     private final FileChooser imageFileChooser = new FileChooser();
 
+    private final FileChooser ontologyFileChooser = new FileChooser();
+
     private Graph layoutGraph;
 
-    @FXML
-    private ScrollPane scrollPane;
+    private final GraphSaver graphSaver = new GraphSaver();
 
-    @FXML
-    private RadioButton explicitlySetParametersButton;
+    private final SavedGraphImportService graphImporterService = new SavedGraphImportService();
 
     @FXML
     private RadioButton chooseParametersButton;
@@ -115,13 +125,42 @@ public class VisualizationController {
     @FXML
     private RadioButton chooseLayoutAutomaticallyButton;
 
-    private final Map<Parameter<?>, ObjectProperty<?>> conversionParameterValues = new HashMap<>();
+    @FXML
+    private RadioButton usePredefinedConverterButton;
 
-    public static Collection<? extends OntologyToGraphConverter> getConvertersWithParameterCombinations(List<Parameter<?>> parameters, int degree) {
-        return Parameter.getParameterCombinations(parameters)
-                .stream()
-                .map(parametersMap -> new OntologyToGraphConverterImpl(degree, parametersMap))
-                .collect(Collectors.toList());
+    @FXML
+    private ChoiceBox<OntologyToGraphConverter> converterChoiceBox;
+
+    private final BooleanBinding graphExists = new BooleanBinding() {
+
+        {
+            super.bind(graph);
+        }
+
+        @Override
+        protected boolean computeValue() {
+            return graph.get() != null;
+        }
+    };
+
+    public Graph getGraph() {
+        return graph.get();
+    }
+
+    public void setGraph(Graph graph) {
+        this.graph.set(graph);
+    }
+
+    public SimpleObjectProperty<Graph> graphProperty() {
+        return graph;
+    }
+
+    public final boolean isGraphExists() {
+        return graphExists.get();
+    }
+
+    public BooleanBinding graphExistsProperty() {
+        return graphExists;
     }
 
     @FXML
@@ -139,10 +178,25 @@ public class VisualizationController {
                 new FileChooser.ExtensionFilter("JPG image", "*.jpg"),
                 new FileChooser.ExtensionFilter("BMP image", "*.bmp")
         );
-        scrollPane.setContent(createParametersForm());
+        ontologyFileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("OWL ontology", "*.owl")
+        );
         ToggleGroup toggleGroup = new ToggleGroup();
-        explicitlySetParametersButton.setToggleGroup(toggleGroup);
         chooseParametersButton.setToggleGroup(toggleGroup);
+        usePredefinedConverterButton.setToggleGroup(toggleGroup);
+        converterChoiceBox.getItems().addAll(CONVERTERS_BY_NAME.values());
+        converterChoiceBox.getSelectionModel().selectFirst();
+        converterChoiceBox.setConverter(new StringConverter<OntologyToGraphConverter>() {
+            @Override
+            public String toString(OntologyToGraphConverter object) {
+                return String.valueOf(object);
+            }
+
+            @Override
+            public OntologyToGraphConverter fromString(String string) {
+                return CONVERTERS_BY_NAME.get(string);
+            }
+        });
         ToggleGroup layoutToggleGroup = new ToggleGroup();
         usePredefinedAlgorithmButton.setToggleGroup(layoutToggleGroup);
         chooseLayoutAutomaticallyButton.setToggleGroup(layoutToggleGroup);
@@ -164,44 +218,35 @@ public class VisualizationController {
         log.setEditable(false);
     }
 
-    private GridPane createParametersForm() {
-        GridPane gridPane = new GridPane();
-        gridPane.setHgap(20);
-        gridPane.setVgap(20);
-        for (int i = 0; i < PARAMETERS.size(); i++) {
-            Parameter<?> parameter = PARAMETERS.get(i);
-            Label label = new Label(parameter.getDescription());
-            label.setPadding(new Insets(0, 0, 0, 5));
-            gridPane.add(label, 0, i);
-            ChoiceBox<Object> choiceBox = new ChoiceBox<>();
-            choiceBox.getItems().addAll(parameter.getPossibleValues());
-            choiceBox.getSelectionModel().selectFirst();
-            gridPane.add(choiceBox, 1, i);
-            conversionParameterValues.put(parameter, choiceBox.valueProperty());
-        }
-        return gridPane;
+    private Window getWindow() {
+        return log.getScene().getWindow();
     }
 
     @FXML
     public void exportToImage() {
-        export(exportToImageService, imageFileChooser);
+        Runnable exportAction = () -> {
+            layoutGraph.setAttribute("ui.stylesheet", NODE_STYLESHEET);
+            doExport(exportToImageService, imageFileChooser, layoutGraph);
+        };
+        if (layoutGraph == null) {
+            chooseLayoutAndVisualize(getGraph(), g -> exportAction.run());
+        } else {
+            exportAction.run();
+        }
     }
 
 
     public void exportGraph() {
-        export(exportToDOTService, fileChooser);
+        doExport(exportToDOTService, fileChooser, getGraph());
     }
 
-    private void export(GraphExportService service, FileChooser chooser) {
-        if (layoutGraph == null) {
-            // fixme maybe use SimpleObjectProperty for graph?
-            new Alert(Alert.AlertType.ERROR, "No layout has been computed").show();
+    private void doExport(GraphExportService service, FileChooser chooser, Graph graph) {
+        File file = chooser.showSaveDialog(getWindow());
+        if (file == null) {
             return;
         }
-        layoutGraph.setAttribute("ui.stylesheet", NODE_STYLESHEET);
-        File file = chooser.showSaveDialog(null);
         service.setFileName(file.getPath());
-        service.setGraph(layoutGraph);
+        service.setGraph(graph);
         service.setOnSucceeded(event ->
                 new Alert(Alert.AlertType.INFORMATION, "Visualization successfully exported").show());
         service.setOnFailed(event ->
@@ -211,11 +256,13 @@ public class VisualizationController {
 
     @FXML
     public void importGraph() {
-        Window window = log.getScene().getWindow();
-        File file = fileChooser.showOpenDialog(window);
+        File file = fileChooser.showOpenDialog(getWindow());
+        if (file == null) {
+            return;
+        }
         importService.setFileName(file.toString());
         importService.setOnSucceeded(event ->
-                graph = (Graph) event.getSource().getValue());
+                setGraph((Graph) event.getSource().getValue()));
         importService.setOnFailed(event -> {
             Throwable exception = event.getSource().getException();
             if (exception != null) {
@@ -227,14 +274,57 @@ public class VisualizationController {
     }
 
     @FXML
+    public void importOntologyFromFile() {
+        File file = ontologyFileChooser.showOpenDialog(getWindow());
+        if (file != null) {
+            try {
+                URL url = file.toURI().toURL();
+                importOntology(url.toString());
+            } catch (MalformedURLException e) {
+                LOGGER.error("Unexpected import error", e);
+            }
+        }
+    }
+
+    @FXML
     public void importOntology() {
+        importOntology(url.getText());
+    }
+
+    private ConversionSettings getConversionSettings(String graphMetricName) {
+        if (chooseParametersButton.isSelected()) {
+            return new ConversionSettings(null, graphMetricName);
+        }
+        OntologyToGraphConverter converter = converterChoiceBox.getValue();
+        return new ConversionSettings(converter.toString(), null);
+    }
+
+    public void importOntology(String url) {
+        layoutGraph = null;
         log.setText("");
-        int degree = minDegree.getValue() == null ? 0 : minDegree.getValue();
-        Collection<? extends OntologyToGraphConverter> converters =
-                getConvertersWithParameterCombinations(PARAMETERS, degree);
         String graphMetricName = graphMetricChoiceBox.getSelectionModel().selectedItemProperty().getValue();
+        ConversionSettings settings = getConversionSettings(graphMetricName);
+        graphImporterService.setConversionSettings(settings);
+        graphImporterService.setOntologyIri(url);
+        graphImporterService.setOnSucceeded(event -> {
+            Graph graph = (Graph) event.getSource().getValue();
+            if (graph == null) {
+                importOntology(url, graphMetricName, settings);
+            } else {
+                appendToLog("Loaded previously saved graph");
+                setGraph(graph);
+            }
+        });
+        graphImporterService.setOnFailed(event -> importOntology(url, graphMetricName, settings));
+        graphImporterService.restart();
+    }
+
+    private void importOntology(String url, String graphMetricName, ConversionSettings settings) {
         GraphMetric graphMetric = GRAPH_METRICS_BY_NAME.get(graphMetricName);
-        OntologyLoaderService service = new OntologyLoaderService(url.getText());
+        int degree = minDegree.getValue() == null ? 0 : minDegree.getValue();
+        NodeRemovingGraphSimplifier simplifier = new NodeRemovingGraphSimplifier(degree);
+        Collection<OntologyToGraphConverter> converters = new ArrayList<>(CONVERTERS_BY_NAME.values());
+        OntologyLoaderService service = new OntologyLoaderService(url);
         service.setOnSucceeded(e -> {
             OWLOntology ontology = (OWLOntology) e.getSource().getValue();
             if (chooseParametersButton.isSelected()) {
@@ -242,64 +332,52 @@ public class VisualizationController {
                 Task<EvaluatedGraph> task = new Task<EvaluatedGraph>() {
                     @Override
                     protected EvaluatedGraph call() {
-                        return new GraphChooser(ontology, converters, graphMetric).choose();
+                        return new GraphChooser(ontology, converters, simplifier, graphMetric).choose();
                     }
                 };
                 executorService.submit(task);
                 task.setOnSucceeded(event -> {
                     EvaluatedGraph evaluatedGraph = (EvaluatedGraph) event.getSource().getValue();
                     logParameterChoice(evaluatedGraph);
-                    graph = evaluatedGraph.getGraph();
+                    Graph graph = evaluatedGraph.getGraph();
+                    graphSaver.saveGraph(graph, url, settings);
+                    setGraph(graph);
                 });
             } else {
-                Task<Graph> task = new Task<Graph>() {
-                    @Override
-                    protected Graph call() {
-                        OntologyToGraphConverter converter =
-                                new OntologyToGraphConverterImpl(degree, getParameterValues());
-                        MultiGraph multiGraph = converter.convert(ontology);
-                        graph = multiGraph;
-                        return multiGraph;
-                    }
-                };
+                OntologyToGraphConverter converter = converterChoiceBox.getValue();
+                ConversionTask task = new ConversionTask(ontology, converter, simplifier);
                 executorService.submit(task);
+                task.setOnSucceeded(event -> {
+                    Graph graph = (Graph) event.getSource().getValue();
+                    setGraph(graph);
+                    graphSaver.saveGraph(graph, url, settings);
+                });
             }
         });
         service.setOnFailed(e -> log.setText(e.getSource().getException().getMessage()));
         service.start();
     }
 
-    private Map<Parameter<?>, Object> getParameterValues() {
-        return conversionParameterValues.entrySet()
-                .stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, stringObjectPropertyEntry -> stringObjectPropertyEntry.getValue().get()));
-    }
-
     @FXML
     public void visualize() {
-        if (graph != null) {
-            chooseLayoutAndVisualize(graph);
+        if (getGraph() != null) {
+            chooseLayoutAndVisualize(getGraph(), this::visualize);
         }
     }
 
     private void logParameterChoice(EvaluatedGraph evaluatedGraph) {
-        Map<Map<Parameter<?>, Object>, Double> metricValuesByParameters = evaluatedGraph.getMetricValuesByParameters();
-        for (Map.Entry<Map<Parameter<?>, Object>, Double> entry : metricValuesByParameters.entrySet()) {
-            String formattedParameters = formatParameters(entry.getKey());
-            appendToLog(String.format("Value of metric with parameters %s: %.3f", formattedParameters, entry.getValue()));
+        Map<OntologyToGraphConverter, Double> metricValuesByConverters = evaluatedGraph.getMetricValuesByConverters();
+        for (Map.Entry<OntologyToGraphConverter, Double> entry : metricValuesByConverters.entrySet()) {
+            OntologyToGraphConverter converter = entry.getKey();
+            appendToLog(String.format("Value of metric with converter %s: %.3f",
+                    converter,
+                    entry.getValue()));
         }
-        appendToLog("Chose " + formatParameters(evaluatedGraph.getBestParameters()));
+        OntologyToGraphConverter bestConverter = evaluatedGraph.getBestConverter();
+        appendToLog("Chose " + bestConverter);
     }
 
-    private String formatParameters(Map<Parameter<?>, Object> parametersMap) {
-        return parametersMap.entrySet()
-                .stream()
-                .map(parameterToValue ->
-                        String.format("'%s':%s", parameterToValue.getKey().getDescription(), parameterToValue.getValue()))
-                .collect(joining(",", "{", "}"));
-    }
-
-    private void chooseLayoutAndVisualize(Graph graph) {
+    private void chooseLayoutAndVisualize(Graph graph, Consumer<Graph> action) {
         if (usePredefinedAlgorithmButton.isSelected()) {
             Task<Graph> task = new Task<Graph>() {
                 @Override
@@ -310,7 +388,7 @@ public class VisualizationController {
             executorService.submit(task);
             task.setOnSucceeded(event -> {
                 layoutGraph = (Graph) event.getSource().getValue();
-                visualize(layoutGraph);
+                action.accept(layoutGraph);
             });
             return;
         }
@@ -331,7 +409,7 @@ public class VisualizationController {
                     .collect(joining("\n", "", "\nChose " + name));
             appendToLog(summary);
             layoutGraph = evaluatedLayout.getBestLayout();
-            visualize(layoutGraph);
+            action.accept(layoutGraph);
         });
         layoutChooserService.setOnFailed(workerStateEvent ->
                 log.setText(workerStateEvent.getSource().getException().getMessage()));
@@ -339,25 +417,70 @@ public class VisualizationController {
 
     private void visualize(Graph layoutGraph) {
         layoutGraph.setAttribute("ui.stylesheet", STYLESHEET);
-        FxViewer fxViewer = new FxViewer(layoutGraph, Viewer.ThreadingModel.GRAPH_IN_ANOTHER_THREAD);
+        FxViewer fxViewer = new FxViewer(layoutGraph, Viewer.ThreadingModel.GRAPH_IN_GUI_THREAD);
         FxViewPanel panel = (FxViewPanel) fxViewer.addDefaultView(false);
         View view = fxViewer.getDefaultView();
         Camera camera = view.getCamera();
 
-        panel.setMouseManager(new PanningMouseManager(panel, camera, layoutGraph));
+        Text text = new Text("");
+        text.setWrappingWidth(180.);
+        TextFlow textFlow = new TextFlow();
+        panel.setMouseManager(new PanningMouseManager(panel, textFlow, camera, layoutGraph));
         panel.setOnScroll(event -> {
             double delta = 0.05;
-            if (event.getDeltaY() > 0)
+            if (event.getDeltaY() > 0) {
                 delta = -delta;
+            }
             camera.setViewPercent(camera.getViewPercent() + delta);
         });
 
         Stage stage = new Stage();
-        stage.setScene(new Scene(panel));
+        VBox textVBox = new VBox(textFlow);
+        textVBox.setPadding(new Insets(10));
+        Button hide = new Button("H");
+        BorderPane borderPane = new BorderPane();
+        borderPane.setLeft(panel);
+        borderPane.setRight(textVBox);
+        GridPane pane = new GridPane();
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setPercentWidth(80);
+        ColumnConstraints col3 = new ColumnConstraints();
+        col3.setPercentWidth(20);
+        pane.getColumnConstraints().addAll(col1, col3);
+        RowConstraints rowConstraints = new RowConstraints();
+        rowConstraints.setVgrow(Priority.ALWAYS);
+        pane.getRowConstraints().addAll(rowConstraints);
+        pane.add(panel, 0, 0);
+        pane.add(textVBox, 1, 0);
+
+        hide.setOnAction(event -> {
+            textVBox.setVisible(!textVBox.isVisible());
+            textVBox.setManaged(!textVBox.isManaged());
+        });
+        stage.setScene(new Scene(pane));
         stage.show();
     }
 
     private void appendToLog(String line) {
         log.setText(log.getText() + line + "\n");
+    }
+
+    static class ConversionTask extends Task<Graph> {
+        private final OWLOntology ontology;
+        private final OntologyToGraphConverter converter;
+        private final GraphSimplifier simplifier;
+
+        ConversionTask(OWLOntology ontology, OntologyToGraphConverter converter, GraphSimplifier simplifier) {
+            this.ontology = ontology;
+            this.converter = converter;
+            this.simplifier = simplifier;
+        }
+
+        @Override
+        protected Graph call() {
+            MultiGraph multiGraph = converter.convert(ontology);
+            simplifier.simplify(multiGraph);
+            return multiGraph;
+        }
     }
 }

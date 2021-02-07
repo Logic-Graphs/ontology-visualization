@@ -2,10 +2,10 @@ package org.golchin.ontology_visualization;
 
 import lombok.AllArgsConstructor;
 import org.golchin.ontology_visualization.metrics.layout.LayoutMetric;
-import org.graphstream.graph.Edge;
 import org.graphstream.graph.Graph;
 import org.graphstream.graph.Node;
 import org.graphstream.graph.implementations.MultiGraph;
+import org.graphstream.stream.GraphReplay;
 import org.graphstream.ui.layout.Layout;
 
 import java.awt.geom.Point2D;
@@ -36,20 +36,9 @@ public class LayoutChooser {
         layout.setStabilizationLimit(0.9);
         copy.addSink(layout);
         layout.addAttributeSink(copy);
-        graph.nodes().forEach(node -> {
-            Node n = copy.addNode(node.getId());
-            Object label = node.getAttribute("label");
-            n.setAttribute("label", label);
-        });
-        graph.edges().forEach(edge -> {
-            Node source = copy.getNode(edge.getNode0().getId());
-            Node target = copy.getNode(edge.getNode1().getId());
-            Edge e = copy.addEdge(edge.getId(), source, target, true);
-            Object label = edge.getAttribute("label");
-            if (label instanceof String)
-                label = ((String) label).toLowerCase();
-            e.setAttribute("label", label);
-        });
+        GraphReplay replay = new GraphReplay("gr");
+        replay.addSink(copy);
+        replay.replay(graph);
         do {
             layout.compute();
         } while (layout.getStabilization() < layout.getStabilizationLimit());
