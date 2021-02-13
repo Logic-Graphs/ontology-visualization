@@ -13,4 +13,6 @@ public class EvaluatedGraph {
     private final double bestMetricValue;
     private final OntologyToGraphConverter bestConverter;
     private final Map<OntologyToGraphConverter, Double> metricValuesByConverters;
+    private final double meanConversionTime;
+    private final double meanMetricComputationTime;
 }

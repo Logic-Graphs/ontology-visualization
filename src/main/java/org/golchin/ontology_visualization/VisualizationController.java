@@ -401,7 +401,7 @@ public class VisualizationController {
         appendToLog("Choosing best layout with metric " + metricName + "...");
         layoutChooserService.setOnSucceeded(stateEvent -> {
             EvaluatedLayout evaluatedLayout = (EvaluatedLayout) stateEvent.getSource().getValue();
-            String name = evaluatedLayout.getName();
+            String name = evaluatedLayout.getLayoutName();
             String summary = evaluatedLayout.getVariants().entrySet()
                     .stream()
                     .map(metricNameToValue -> "Average value of metric for " + metricNameToValue.getKey() +

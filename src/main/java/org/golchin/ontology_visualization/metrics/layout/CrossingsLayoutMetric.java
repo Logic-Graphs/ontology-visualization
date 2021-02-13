@@ -26,7 +26,8 @@ public abstract class CrossingsLayoutMetric implements LayoutMetric {
         for (int i = 0; i < edgeList.size(); i++) {
             Line2D firstLine = edgeToLine.get(edgeList.get(i));
             for (int j = 0; j < i; j++) {
-                if (!haveCommonVertices(edgeList.get(i), edgeList.get(j))) {
+                if (!edgeList.get(i).isLoop() && !edgeList.get(j).isLoop() &&
+                        !haveCommonVertices(edgeList.get(i), edgeList.get(j))) {
                     Line2D secondLine = edgeToLine.get(edgeList.get(j));
                     if (firstLine.intersectsLine(secondLine)) {
                         crossings = reduce(crossings, firstLine, secondLine);

@@ -42,6 +42,8 @@ public class GraphSaver {
         try {
             MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
             try (DigestInputStream digestInputStream = new DigestInputStream(new ByteArrayInputStream(url.getBytes()), messageDigest)) {
+                byte[] buffer = new byte[2048];
+                while (digestInputStream.read(buffer) > 0);
                 byte[] digest = digestInputStream.getMessageDigest().digest();
                 StringBuilder builder = new StringBuilder();
                 for (byte b : digest) {

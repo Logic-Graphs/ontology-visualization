@@ -54,6 +54,7 @@ public class LayoutChooser {
             Double bestMetric = null;
             double sumMetrics = 0;
             String layoutName = null;
+            List<Double> metricValues = new ArrayList<>();
             for (int i = 0; i < nTrials; i++) {
                 Layout layout = possibleLayoutSupplier.get();
                 layoutName = layout.getLayoutAlgorithmName();
@@ -64,11 +65,12 @@ public class LayoutChooser {
                     bestLayout = layoutGraph;
                     bestMetric = curMetric;
                 }
+                metricValues.add(curMetric);
             }
             double average = sumMetrics / nTrials;
             variants.put(layoutName, average);
             EvaluatedLayout evaluatedLayout =
-                    new EvaluatedLayout(layoutName, bestLayout, bestMetric, average, variants);
+                    new EvaluatedLayout(layoutName, bestLayout, metricValues, bestMetric, average, variants);
             evaluatedLayouts.add(evaluatedLayout);
         }
         return Collections.max(evaluatedLayouts, Comparator.comparing(EvaluatedLayout::getAverageAesthetics, comparator));
