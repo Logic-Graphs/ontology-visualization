@@ -46,13 +46,11 @@ public class LayoutChooser {
     }
 
     public EvaluatedLayout chooseLayout() {
-        List<EvaluatedLayout> evaluatedLayouts = new ArrayList<>();
         Comparator<Double> comparator = layoutMetric.getComparator();
-        Map<String, Double> variants = new LinkedHashMap<>();
+        Map<String, LayoutVariant> variants = new LinkedHashMap<>();
         for (Supplier<Layout> possibleLayoutSupplier : possibleLayouts) {
             Graph bestLayout = null;
             Double bestMetric = null;
-            double sumMetrics = 0;
             String layoutName = null;
             List<Double> metricValues = new ArrayList<>();
             for (int i = 0; i < nTrials; i++) {
@@ -60,19 +58,16 @@ public class LayoutChooser {
                 layoutName = layout.getLayoutAlgorithmName();
                 Graph layoutGraph = layoutGraph(graph, layout);
                 double curMetric = layoutMetric.calculate(layoutGraph, NODE_POSITION_GETTER);
-                sumMetrics += curMetric;
                 if (bestMetric == null || comparator.compare(bestMetric, curMetric) < 0) {
                     bestLayout = layoutGraph;
                     bestMetric = curMetric;
                 }
                 metricValues.add(curMetric);
             }
-            double average = sumMetrics / nTrials;
-            variants.put(layoutName, average);
-            EvaluatedLayout evaluatedLayout =
-                    new EvaluatedLayout(layoutName, bestLayout, metricValues, bestMetric, average, variants);
-            evaluatedLayouts.add(evaluatedLayout);
+            variants.put(layoutName, new LayoutVariant(layoutName, bestLayout, bestMetric, metricValues));
         }
-        return Collections.max(evaluatedLayouts, Comparator.comparing(EvaluatedLayout::getAverageAesthetics, comparator));
+        Comparator<LayoutVariant> variantComparator = Comparator.comparing(LayoutVariant::getAverageMetricValue, comparator);
+        LayoutVariant bestVariant = Collections.max(variants.values(), variantComparator);
+        return new EvaluatedLayout(variants, bestVariant);
     }
 }
