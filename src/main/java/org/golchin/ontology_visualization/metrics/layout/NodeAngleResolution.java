@@ -18,6 +18,8 @@ public class NodeAngleResolution implements LayoutMetric {
         for (Node node : graph) {
             Point2D nodePoint = vertexToPoint.apply(node);
             List<Double> angles = node.neighborNodes()
+                    .filter(neighbor -> neighbor != node)
+                    .distinct()
                     .map(neighbor -> {
                         Point2D neighborPoint = vertexToPoint.apply(neighbor);
                         return Math.atan2(neighborPoint.getY() - nodePoint.getY(), neighborPoint.getX() - nodePoint.getX());

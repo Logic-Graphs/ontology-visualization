@@ -5,10 +5,10 @@ import javafx.util.Pair;
 import java.util.function.Supplier;
 
 public class Util {
-    public static <T> Pair<T, Long> measureTimeMillis(Supplier<T> action) {
+    public static <T> Pair<T, Double> measureTimeMillis(Supplier<T> action) {
         long begin = System.nanoTime();
         T result = action.get();
-        long time = (System.nanoTime() - begin) / 1000;
+        double time = (double) (System.nanoTime() - begin) / 1_000_000;
         return new Pair<>(result, time);
     }
 }
