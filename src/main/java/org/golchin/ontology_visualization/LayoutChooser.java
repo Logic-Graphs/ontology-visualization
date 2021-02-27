@@ -4,14 +4,10 @@ import lombok.AllArgsConstructor;
 import org.golchin.ontology_visualization.metrics.layout.LayoutMetric;
 import org.graphstream.graph.Graph;
 import org.graphstream.graph.Node;
-import org.graphstream.graph.implementations.MultiGraph;
-import org.graphstream.stream.GraphReplay;
-import org.graphstream.ui.layout.Layout;
 
 import java.awt.geom.Point2D;
 import java.util.*;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 @AllArgsConstructor
 public class LayoutChooser {
@@ -27,36 +23,22 @@ public class LayoutChooser {
         return new Point2D.Double(x, y);
     };
     private final Graph graph;
-    private final List<Supplier<Layout>> possibleLayouts;
+    private final Collection<LayoutAdapter<?>> possibleLayouts;
     private final int nTrials;
     private final LayoutMetric layoutMetric;
-
-    public static Graph layoutGraph(Graph graph, Layout layout) {
-        MultiGraph copy = new MultiGraph(UUID.randomUUID().toString());
-        layout.setStabilizationLimit(0.9);
-        copy.addSink(layout);
-        layout.addAttributeSink(copy);
-        GraphReplay replay = new GraphReplay("gr");
-        replay.addSink(copy);
-        replay.replay(graph);
-        do {
-            layout.compute();
-        } while (layout.getStabilization() < layout.getStabilizationLimit());
-        return copy;
-    }
 
     public EvaluatedLayout chooseLayout() {
         Comparator<Double> comparator = layoutMetric.getComparator();
         Map<String, LayoutVariant> variants = new LinkedHashMap<>();
-        for (Supplier<Layout> possibleLayoutSupplier : possibleLayouts) {
+        for (LayoutAdapter<?> layoutAdapter : possibleLayouts) {
             Graph bestLayout = null;
             Double bestMetric = null;
             String layoutName = null;
             List<Double> metricValues = new ArrayList<>();
+            int nTrials = layoutAdapter.isDeterministic() ? 1 : this.nTrials;
             for (int i = 0; i < nTrials; i++) {
-                Layout layout = possibleLayoutSupplier.get();
-                layoutName = layout.getLayoutAlgorithmName();
-                Graph layoutGraph = layoutGraph(graph, layout);
+                layoutName = layoutAdapter.getLayoutAlgorithmName();
+                Graph layoutGraph = layoutAdapter.layoutGraph(graph);
                 double curMetric = layoutMetric.calculate(layoutGraph, NODE_POSITION_GETTER);
                 if (bestMetric == null || comparator.compare(bestMetric, curMetric) < 0) {
                     bestLayout = layoutGraph;

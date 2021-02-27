@@ -1,6 +1,7 @@
 import com.google.common.collect.ImmutableMap;
 import com.google.common.math.Stats;
 import com.google.common.math.StatsAccumulator;
+import javafx.application.Platform;
 import javafx.util.Pair;
 import org.golchin.ontology_visualization.*;
 import org.golchin.ontology_visualization.metrics.*;
@@ -22,6 +23,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
+@SuppressWarnings("UnstableApiUsage")
 public class MetricCombinations {
     public static final NodeRemovingGraphSimplifier GRAPH_SIMPLIFIER = new NodeRemovingGraphSimplifier(0);
     private static final Map<String, String> ONTOLOGY_URLS_BY_ID =
@@ -94,7 +96,8 @@ public class MetricCombinations {
                             ontology,
                             convertersTable,
                             resultsByMetrics,
-                            bestConvertersByMetric);
+                            bestConvertersByMetric,
+                            ontologyDir);
                 }
                 convertersTable.writeToCsv(ontologyDir.resolve("converters.csv"));
                 convertersTable.writeToLatex(ontologyDir.resolve("converters.tex"));
@@ -115,6 +118,7 @@ public class MetricCombinations {
                     })
                     .forEach(latexLines::add);
         }
+        Platform.exit();
         Path tablesFile = Paths.get("all_tables.tex");
         try (BufferedWriter writer = Files.newBufferedWriter(tablesFile)) {
             for (String line : latexLines) {
@@ -140,7 +144,7 @@ public class MetricCombinations {
         layoutStatsVisualizer.writeToFile(chartPath, 800, 600);
     }
 
-    private static void doTrial(Map<String, StatsAccumulator> timeStatsByGraphMetric, Map<String, StatsAccumulator> timeStatsByLayoutMetric, OWLOntology ontology, Table convertersTable, Map<String, Map<String, List<EvaluatedLayout>>> experimentsByMetricCombinations, Map<String, OntologyToGraphConverter> bestConvertersByMetric) throws IOException {
+    private static void doTrial(Map<String, StatsAccumulator> timeStatsByGraphMetric, Map<String, StatsAccumulator> timeStatsByLayoutMetric, OWLOntology ontology, Table convertersTable, Map<String, Map<String, List<EvaluatedLayout>>> experimentsByMetricCombinations, Map<String, OntologyToGraphConverter> bestConvertersByMetric, Path ontologyDir) throws IOException {
         int rowIndex = 0;
         for (Map.Entry<String, GraphMetric> namedGraphMetric : GRAPH_METRICS.entrySet()) {
             String graphMetricName = namedGraphMetric.getKey();
@@ -172,7 +176,10 @@ public class MetricCombinations {
                 timeStatsByLayoutMetric.computeIfAbsent(layoutMetricName, m -> new StatsAccumulator())
                         .add(layoutWithTime.getValue());
                 String fileName = String.format("img_%s_%s.png", bestConverter, evaluatedLayout.getLayoutName());
-                new FxFileSinkImages().writeAll(graphWithTime.getKey().getGraph(), fileName);
+                Graph graph = layoutWithTime.getKey().getBestLayout();
+                graph.setAttribute("ui.stylesheet", VisualizationController.GRAPH_STYLESHEET);
+                String filePath = ontologyDir.resolve(fileName).toString();
+                new FxFileSinkImages().writeAll(graph, filePath);
             }
             rowIndex++;
         }
