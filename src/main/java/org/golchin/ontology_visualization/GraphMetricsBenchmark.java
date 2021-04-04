@@ -93,7 +93,7 @@ public class GraphMetricsBenchmark {
         OWLOntology ontology = loadOntology(state.ontologyUrl);
         GraphChooser graphChooser = new GraphChooser(ontology, CONVERTERS, GRAPH_SIMPLIFIER, state.graphMetric);
         EvaluatedGraph evaluatedGraph = graphChooser.choose();
-        LayoutChooser layoutChooser = new LayoutChooser(evaluatedGraph.getGraph(), VisualizationController.POSSIBLE_LAYOUTS, 5, state.layoutMetric);
+        LayoutChooser layoutChooser = new LayoutChooser(evaluatedGraph.getGraph(), VisualizationController.POSSIBLE_LAYOUTS, 20, state.layoutMetric);
         EvaluatedLayout evaluatedLayout = layoutChooser.chooseLayout();
         FxFileSinkImages sink = new FxFileSinkImages();
         sink.writeAll(evaluatedLayout.getBestLayout(), "layout.png");

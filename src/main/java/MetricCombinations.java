@@ -15,9 +15,6 @@ import org.semanticweb.owlapi.model.OWLOntologyCreationException;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.math.MathContext;
-import java.math.RoundingMode;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -62,8 +59,10 @@ public class MetricCombinations {
         Graph graph = evaluatedGraph.getGraph();
         LayoutChooser layoutChooser = new LayoutChooser(graph,
                 VisualizationController.POSSIBLE_LAYOUTS,
+                20,
                 5,
-                layoutMetric);
+                layoutMetric,
+                0.05);
         return layoutChooser.chooseLayout();
     }
 
@@ -175,7 +174,8 @@ public class MetricCombinations {
                         .add(evaluatedLayout);
                 timeStatsByLayoutMetric.computeIfAbsent(layoutMetricName, m -> new StatsAccumulator())
                         .add(layoutWithTime.getValue());
-                String fileName = String.format("img_%s_%s.png", bestConverter, evaluatedLayout.getLayoutName());
+                String ontologyName = ontologyDir.getFileName().toString();
+                String fileName = String.format("%s_%s_%s.png", ontologyName, bestConverter, evaluatedLayout.getLayoutName());
                 Graph graph = layoutWithTime.getKey().getBestLayout();
                 graph.setAttribute("ui.stylesheet", VisualizationController.GRAPH_STYLESHEET);
                 String filePath = ontologyDir.resolve(fileName).toString();
@@ -209,8 +209,12 @@ public class MetricCombinations {
                     String formattedMetricValue;
                     double mean = stats.mean();
                     String formattedMean = formatDouble(mean);
-                    formattedMetricValue = formattedMean + " ± " + formatDouble(standardDeviation);
-                    layoutChoiceTable.setValue(HEADER_METRIC_VALUE + layout, layoutRowIndex, formattedMetricValue);
+                    if (standardDeviation > 0) {
+                        formattedMetricValue = formattedMean + " \\pm " + formatDouble(standardDeviation);
+                    } else {
+                        formattedMetricValue = formattedMean;
+                    }
+                    layoutChoiceTable.setValue(HEADER_METRIC_VALUE + layout, layoutRowIndex, "$ " + formattedMetricValue + " $");
                 }
                 layoutChoiceTable.setValue(HEADER_METRIC, layoutRowIndex, layoutMetricName);
                 layoutChoiceTable.setValue(HEADER_CHOSEN_LAYOUT, layoutRowIndex, experiment.getBestLayoutName());
@@ -222,20 +226,25 @@ public class MetricCombinations {
         }
     }
 
-    private static String formatDouble(double d) {
-        if (d < 0.0005) {
-            BigDecimal decimal = new BigDecimal(d);
-            MathContext mc = new MathContext(3, RoundingMode.HALF_UP);
-            BigDecimal rounded = decimal.round(mc);
-            return String.valueOf(rounded);
+    static String latexScientificNotation(Number number) {
+        String result = number.toString();
+        int eIndex = result.indexOf("E");
+        if (eIndex < 0) {
+            return result;
         }
-        return formatDoubleUpToNPlaces(d, 3);
+        String coefficient = result.substring(0, eIndex);
+        return coefficient + " \\times 10^{" + result.substring(eIndex + 1) + "}";
     }
 
-    private static String formatDoubleUpToNPlaces(double d, int n) {
-        n -= Math.ceil(Math.log10(d)) + 1;
+    private static String formatDouble(double d) {
+        double rounded = roundDoubleUpToNPlaces(d, 3);
+        return latexScientificNotation(rounded);
+    }
+
+    private static double roundDoubleUpToNPlaces(double d, int n) {
+        n -= Math.floor(Math.log10(d)) + 1;
         double power = Math.pow(10, n);
-        return String.valueOf((double) Math.round(d * power) / power);
+        return (double) Math.round(d * power) / power;
     }
 
     private static List<String> createLayoutsTableHeader() {

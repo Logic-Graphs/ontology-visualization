@@ -9,7 +9,7 @@ import java.util.*;
 public class HierarchicalLayoutAdapter extends LayoutAdapter<HierarchicalLayout> {
 
     public HierarchicalLayoutAdapter() {
-        super(HierarchicalLayout::new, "HierarchicalLayout");
+        super(HierarchicalLayout::new, "Hierarchical Layout");
     }
 
     private List<String> getRoots(Graph graph) {

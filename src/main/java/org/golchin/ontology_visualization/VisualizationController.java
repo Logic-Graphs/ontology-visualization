@@ -396,7 +396,7 @@ public class VisualizationController {
         String metricName = metricChoiceBox.getSelectionModel().selectedItemProperty().getValue();
         LayoutMetric layoutMetric = METRICS_BY_NAME.get(metricName);
 
-        LayoutChooser layoutChooser = new LayoutChooser(graph, POSSIBLE_LAYOUTS, 5, layoutMetric);
+        LayoutChooser layoutChooser = new LayoutChooser(graph, POSSIBLE_LAYOUTS, 20, layoutMetric);
         LayoutChooserService layoutChooserService = new LayoutChooserService(layoutChooser);
         layoutChooserService.start();
         appendToLog("Choosing best layout with metric " + metricName + "...");
