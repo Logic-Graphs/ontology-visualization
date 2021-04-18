@@ -14,15 +14,17 @@ public class CrossingAngleResolution extends CrossingsLayoutMetric {
 
     @Override
     protected double getInitialValue() {
-        return Double.POSITIVE_INFINITY;
+        return 90.0;
     }
 
     @Override
     protected double reduce(double curValue, Line2D firstLine, Line2D secondLine) {
         Point2D v1 = new Point2D.Double(firstLine.getX2() - firstLine.getX1(), firstLine.getY2() - firstLine.getY1());
         Point2D v2 = new Point2D.Double(secondLine.getX2() - secondLine.getX1(), secondLine.getY2() - secondLine.getY1());
-        double acos = Math.acos(Math.abs(scalarProduct(v1, v2)));
-        return Math.min(curValue, acos);
+        double abs = Math.abs(scalarProduct(v1, v2));
+        double acos = Math.acos(abs);
+        double angleDegrees = acos * 180 / Math.PI;
+        return Math.min(curValue, angleDegrees);
     }
 
     @Override
