@@ -18,10 +18,10 @@ public class GraphChooser {
     private final GraphSimplifier simplifier;
     private final GraphMetric metric;
 
-    protected EvaluatedGraph choose() {
+    public EvaluatedGraph choose() {
         Double bestMetricValue = null;
         Graph bestGraph = null;
-        Map<OntologyToGraphConverter, Double> metricValuesByParameters = new HashMap<>();
+        Map<OntologyToGraphConverter, Double> metricValuesByConverters = new HashMap<>();
         Comparator<Double> comparator = metric.getComparator();
         OntologyToGraphConverter bestConverter = null;
         for (OntologyToGraphConverter converter : converters) {
@@ -33,8 +33,11 @@ public class GraphChooser {
                 bestGraph = graph;
                 bestConverter = converter;
             }
-            metricValuesByParameters.put(converter, value);
+            metricValuesByConverters.put(converter, value);
         }
-        return new EvaluatedGraph(bestGraph, bestMetricValue, bestConverter, metricValuesByParameters);
+        return new EvaluatedGraph(bestGraph,
+                bestMetricValue,
+                bestConverter,
+                metricValuesByConverters);
     }
 }

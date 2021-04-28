@@ -1,19 +1,15 @@
 package org.golchin.ontology_visualization;
 
-import lombok.AllArgsConstructor;
+import com.google.common.math.StatsAccumulator;
+import org.apache.log4j.Logger;
 import org.golchin.ontology_visualization.metrics.layout.LayoutMetric;
 import org.graphstream.graph.Graph;
 import org.graphstream.graph.Node;
-import org.graphstream.graph.implementations.MultiGraph;
-import org.graphstream.stream.GraphReplay;
-import org.graphstream.ui.layout.Layout;
 
 import java.awt.geom.Point2D;
 import java.util.*;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
-@AllArgsConstructor
 public class LayoutChooser {
     public static final Function<Node, Point2D> NODE_POSITION_GETTER = n -> {
         Object xy = n.getAttribute("xyz");
@@ -27,50 +23,76 @@ public class LayoutChooser {
         return new Point2D.Double(x, y);
     };
     private final Graph graph;
-    private final List<Supplier<Layout>> possibleLayouts;
+    private final Collection<LayoutAdapter<?>> possibleLayouts;
     private final int nTrials;
+    private final int minTrialsCount;
     private final LayoutMetric layoutMetric;
+    private final double changeThreshold;
+    private static final Logger LOGGER = Logger.getLogger(LayoutChooser.class);
 
-    public static Graph layoutGraph(Graph graph, Layout layout) {
-        MultiGraph copy = new MultiGraph(UUID.randomUUID().toString());
-        layout.setStabilizationLimit(0.9);
-        copy.addSink(layout);
-        layout.addAttributeSink(copy);
-        GraphReplay replay = new GraphReplay("gr");
-        replay.addSink(copy);
-        replay.replay(graph);
-        do {
-            layout.compute();
-        } while (layout.getStabilization() < layout.getStabilizationLimit());
-        return copy;
+    public LayoutChooser(Graph graph,
+                     Collection<LayoutAdapter<?>> possibleLayouts,
+                     int nTrials,
+                     LayoutMetric layoutMetric) {
+        this(graph, possibleLayouts, nTrials, 5, layoutMetric, 0.01);
+    }
+
+    public LayoutChooser(Graph graph,
+                         Collection<LayoutAdapter<?>> possibleLayouts,
+                         int nTrials,
+                         int minTrialsCount,
+                         LayoutMetric layoutMetric,
+                         double changeThreshold) {
+        this.graph = graph;
+        this.possibleLayouts = possibleLayouts;
+        this.nTrials = nTrials;
+        this.minTrialsCount = minTrialsCount;
+        this.layoutMetric = layoutMetric;
+        this.changeThreshold = changeThreshold;
     }
 
     public EvaluatedLayout chooseLayout() {
-        List<EvaluatedLayout> evaluatedLayouts = new ArrayList<>();
         Comparator<Double> comparator = layoutMetric.getComparator();
-        Map<String, Double> variants = new LinkedHashMap<>();
-        for (Supplier<Layout> possibleLayoutSupplier : possibleLayouts) {
+        Map<String, LayoutVariant> variants = new LinkedHashMap<>();
+        for (LayoutAdapter<?> layoutAdapter : possibleLayouts) {
             Graph bestLayout = null;
             Double bestMetric = null;
-            double sumMetrics = 0;
-            String layoutName = null;
-            for (int i = 0; i < nTrials; i++) {
-                Layout layout = possibleLayoutSupplier.get();
-                layoutName = layout.getLayoutAlgorithmName();
-                Graph layoutGraph = layoutGraph(graph, layout);
+            List<Double> metricValues = new ArrayList<>();
+            int nTrials = layoutAdapter.isDeterministic() ? 1 : this.nTrials;
+            boolean hasConverged = false;
+            Double prevMean = null;
+            StatsAccumulator meanAccumulator = new StatsAccumulator();
+            double meanChangeRatio = Double.POSITIVE_INFINITY;
+            String layoutName = layoutAdapter.getLayoutAlgorithmName();
+            int i = 0;
+            for (; i < nTrials && !hasConverged; i++) {
+                Graph layoutGraph = layoutAdapter.layoutGraph(graph);
                 double curMetric = layoutMetric.calculate(layoutGraph, NODE_POSITION_GETTER);
-                sumMetrics += curMetric;
                 if (bestMetric == null || comparator.compare(bestMetric, curMetric) < 0) {
                     bestLayout = layoutGraph;
                     bestMetric = curMetric;
                 }
+                metricValues.add(curMetric);
+                meanAccumulator.add(curMetric);
+                double mean = meanAccumulator.mean();
+                if (i + 1 >= minTrialsCount && prevMean != null) {
+                    meanChangeRatio = Math.abs(mean - prevMean) / prevMean;
+                    if (mean < 1E-9 && prevMean < 1E-9 || meanChangeRatio < changeThreshold) {
+                        hasConverged = true;
+                    }
+                }
+                prevMean = mean;
             }
-            double average = sumMetrics / nTrials;
-            variants.put(layoutName, average);
-            EvaluatedLayout evaluatedLayout =
-                    new EvaluatedLayout(layoutName, bestLayout, bestMetric, average, variants);
-            evaluatedLayouts.add(evaluatedLayout);
+            String metricName = layoutMetric.getClass().getSimpleName();
+            if (hasConverged) {
+                LOGGER.debug("Converged for layout " + layoutName + ", " + metricName + " after " + i + " iterations");
+            } else {
+                LOGGER.warn(String.format("Not converged for layout %s, metric %s, current ratio: %.4f", layoutName, metricName, meanChangeRatio));
+            }
+            variants.put(layoutName, new LayoutVariant(layoutName, bestLayout, bestMetric, metricValues));
         }
-        return Collections.max(evaluatedLayouts, Comparator.comparing(EvaluatedLayout::getAverageAesthetics, comparator));
+        Comparator<LayoutVariant> variantComparator = Comparator.comparing(LayoutVariant::getAverageMetricValue, comparator);
+        LayoutVariant bestVariant = Collections.max(variants.values(), variantComparator);
+        return new EvaluatedLayout(variants, bestVariant);
     }
 }

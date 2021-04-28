@@ -22,7 +22,6 @@ import org.graphstream.graph.Graph;
 import org.graphstream.graph.implementations.MultiGraph;
 import org.graphstream.ui.fx_viewer.FxViewPanel;
 import org.graphstream.ui.fx_viewer.FxViewer;
-import org.graphstream.ui.layout.Layout;
 import org.graphstream.ui.layout.springbox.implementations.LinLog;
 import org.graphstream.ui.layout.springbox.implementations.SpringBox;
 import org.graphstream.ui.view.View;
@@ -37,22 +36,24 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
-import java.util.function.Supplier;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toMap;
 
 public class VisualizationController {
     private static final Logger LOGGER = Logger.getLogger(VisualizationController.class);
-    public static final List<Supplier<Layout>> POSSIBLE_LAYOUTS =
-            Arrays.asList(LinLog::new, SpringBox::new);
-    public static final Map<String, Supplier<Layout>> POSSIBLE_LAYOUTS_BY_NAME =
-            POSSIBLE_LAYOUTS.stream().collect(toMap((Supplier<Layout> l) -> l.get().getLayoutAlgorithmName(), l -> l));
+    public static final Collection<LayoutAdapter<?>> POSSIBLE_LAYOUTS = Arrays.asList(
+                    new LayoutAdapter<>(LinLog::new, "LinLog"),
+                    new LayoutAdapter<>(SpringBox::new, "SpringBox"),
+                    new HierarchicalLayoutAdapter());
+    public static final Map<String, LayoutAdapter<?>> POSSIBLE_LAYOUTS_BY_NAME = POSSIBLE_LAYOUTS.stream()
+            .collect(Collectors.toMap(LayoutAdapter::getLayoutAlgorithmName, Function.identity()));
 
     public static final Map<String, LayoutMetric> METRICS_BY_NAME = new LinkedHashMap<>();
     public static final String EDGE_STYLESHEET = "edge { text-visibility-mode: hidden; text-visibility: 0.5;  }";
     public static final String NODE_STYLESHEET = "node { size-mode: fit; text-alignment: center; fill-color: rgb(170, 204, 255); shape: box; text-offset: 5, -2; }";
-    private static final String STYLESHEET = EDGE_STYLESHEET + " " + NODE_STYLESHEET;
+    public static final String GRAPH_STYLESHEET = EDGE_STYLESHEET + " " + NODE_STYLESHEET;
 
     static {
         METRICS_BY_NAME.put("Number of crossings", new NumberOfCrossings());
@@ -100,7 +101,7 @@ public class VisualizationController {
     private final FileChooser fileChooser = new FileChooser();
 
     private final GraphExportToImageService exportToImageService = new GraphExportToImageService();
-    
+
     private final GraphExportToDOTService exportToDOTService = new GraphExportToDOTService();
 
     private final FileChooser imageFileChooser = new FileChooser();
@@ -117,7 +118,7 @@ public class VisualizationController {
     private RadioButton chooseParametersButton;
 
     @FXML
-    private ChoiceBox<Layout> layoutAlgorithmChoiceBox;
+    private ChoiceBox<LayoutAdapter<?>> layoutAlgorithmChoiceBox;
 
     @FXML
     private RadioButton usePredefinedAlgorithmButton;
@@ -200,19 +201,19 @@ public class VisualizationController {
         ToggleGroup layoutToggleGroup = new ToggleGroup();
         usePredefinedAlgorithmButton.setToggleGroup(layoutToggleGroup);
         chooseLayoutAutomaticallyButton.setToggleGroup(layoutToggleGroup);
-        layoutAlgorithmChoiceBox.setConverter(new StringConverter<Layout>() {
+        layoutAlgorithmChoiceBox.setConverter(new StringConverter<LayoutAdapter<?>>() {
             @Override
-            public String toString(Layout object) {
+            public String toString(LayoutAdapter<?> object) {
                 return object.getLayoutAlgorithmName();
             }
 
             @Override
-            public Layout fromString(String string) {
-                return POSSIBLE_LAYOUTS_BY_NAME.get(string).get();
+            public LayoutAdapter<?> fromString(String string) {
+                return POSSIBLE_LAYOUTS_BY_NAME.get(string);
             }
         });
-        for (Supplier<Layout> layout : POSSIBLE_LAYOUTS) {
-            layoutAlgorithmChoiceBox.getItems().add(layout.get());
+        for (LayoutAdapter<?> layout : POSSIBLE_LAYOUTS) {
+            layoutAlgorithmChoiceBox.getItems().add(layout);
         }
         layoutAlgorithmChoiceBox.getSelectionModel().selectFirst();
         log.setEditable(false);
@@ -382,7 +383,7 @@ public class VisualizationController {
             Task<Graph> task = new Task<Graph>() {
                 @Override
                 protected Graph call() {
-                    return LayoutChooser.layoutGraph(graph, layoutAlgorithmChoiceBox.getValue());
+                    return layoutAlgorithmChoiceBox.getValue().layoutGraph(graph);
                 }
             };
             executorService.submit(task);
@@ -395,17 +396,17 @@ public class VisualizationController {
         String metricName = metricChoiceBox.getSelectionModel().selectedItemProperty().getValue();
         LayoutMetric layoutMetric = METRICS_BY_NAME.get(metricName);
 
-        LayoutChooser layoutChooser = new LayoutChooser(graph, POSSIBLE_LAYOUTS, 5, layoutMetric);
+        LayoutChooser layoutChooser = new LayoutChooser(graph, POSSIBLE_LAYOUTS, 20, layoutMetric);
         LayoutChooserService layoutChooserService = new LayoutChooserService(layoutChooser);
         layoutChooserService.start();
         appendToLog("Choosing best layout with metric " + metricName + "...");
         layoutChooserService.setOnSucceeded(stateEvent -> {
             EvaluatedLayout evaluatedLayout = (EvaluatedLayout) stateEvent.getSource().getValue();
-            String name = evaluatedLayout.getName();
+            String name = evaluatedLayout.getLayoutName();
             String summary = evaluatedLayout.getVariants().entrySet()
                     .stream()
                     .map(metricNameToValue -> "Average value of metric for " + metricNameToValue.getKey() +
-                                    ": " + metricNameToValue.getValue())
+                            ": " + metricNameToValue.getValue().getAverageMetricValue())
                     .collect(joining("\n", "", "\nChose " + name));
             appendToLog(summary);
             layoutGraph = evaluatedLayout.getBestLayout();
@@ -416,7 +417,7 @@ public class VisualizationController {
     }
 
     private void visualize(Graph layoutGraph) {
-        layoutGraph.setAttribute("ui.stylesheet", STYLESHEET);
+        layoutGraph.setAttribute("ui.stylesheet", GRAPH_STYLESHEET);
         FxViewer fxViewer = new FxViewer(layoutGraph, Viewer.ThreadingModel.GRAPH_IN_GUI_THREAD);
         FxViewPanel panel = (FxViewPanel) fxViewer.addDefaultView(false);
         View view = fxViewer.getDefaultView();
@@ -430,6 +431,8 @@ public class VisualizationController {
             double delta = 0.05;
             if (event.getDeltaY() > 0) {
                 delta = -delta;
+            } else if (event.getDeltaY() == 0) {
+                delta = 0;
             }
             camera.setViewPercent(camera.getViewPercent() + delta);
         });
