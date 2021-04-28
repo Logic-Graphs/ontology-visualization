@@ -431,6 +431,8 @@ public class VisualizationController {
             double delta = 0.05;
             if (event.getDeltaY() > 0) {
                 delta = -delta;
+            } else if (event.getDeltaY() == 0) {
+                delta = 0;
             }
             camera.setViewPercent(camera.getViewPercent() + delta);
         });
