@@ -1,7 +1,5 @@
 package org.golchin.ontology_visualization;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 import org.graphstream.graph.Graph;
 import org.graphstream.graph.implementations.MultiGraph;
 import org.graphstream.stream.GraphReplay;
@@ -9,16 +7,16 @@ import org.graphstream.ui.layout.Layout;
 
 import java.util.function.Supplier;
 
-@AllArgsConstructor
-public class LayoutAdapter<T extends Layout> {
+public class LayoutAdapter<T extends Layout> extends LayoutMethod {
     private final Supplier<T> layoutSupplier;
-    @Getter
-    private final boolean isDeterministic;
-    @Getter
-    private final String layoutAlgorithmName;
 
     public LayoutAdapter(Supplier<T> layoutSupplier, String layoutAlgorithmName) {
         this(layoutSupplier, false, layoutAlgorithmName);
+    }
+
+    public LayoutAdapter(Supplier<T> layoutSupplier, boolean isDeterministic, String layoutAlgorithmName) {
+        super(isDeterministic, layoutAlgorithmName);
+        this.layoutSupplier = layoutSupplier;
     }
 
     public void prepareLayout(T layout, Graph graph) {

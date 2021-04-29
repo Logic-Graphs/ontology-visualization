@@ -23,7 +23,7 @@ public class LayoutChooser {
         return new Point2D.Double(x, y);
     };
     private final Graph graph;
-    private final Collection<LayoutAdapter<?>> possibleLayouts;
+    private final Collection<LayoutMethod> possibleLayouts;
     private final int nTrials;
     private final int minTrialsCount;
     private final LayoutMetric layoutMetric;
@@ -31,14 +31,14 @@ public class LayoutChooser {
     private static final Logger LOGGER = Logger.getLogger(LayoutChooser.class);
 
     public LayoutChooser(Graph graph,
-                     Collection<LayoutAdapter<?>> possibleLayouts,
+                     Collection<LayoutMethod> possibleLayouts,
                      int nTrials,
                      LayoutMetric layoutMetric) {
         this(graph, possibleLayouts, nTrials, 5, layoutMetric, 0.01);
     }
 
     public LayoutChooser(Graph graph,
-                         Collection<LayoutAdapter<?>> possibleLayouts,
+                         Collection<LayoutMethod> possibleLayouts,
                          int nTrials,
                          int minTrialsCount,
                          LayoutMetric layoutMetric,
@@ -54,7 +54,7 @@ public class LayoutChooser {
     public EvaluatedLayout chooseLayout() {
         Comparator<Double> comparator = layoutMetric.getComparator();
         Map<String, LayoutVariant> variants = new LinkedHashMap<>();
-        for (LayoutAdapter<?> layoutAdapter : possibleLayouts) {
+        for (LayoutMethod layoutAdapter : possibleLayouts) {
             Graph bestLayout = null;
             Double bestMetric = null;
             List<Double> metricValues = new ArrayList<>();

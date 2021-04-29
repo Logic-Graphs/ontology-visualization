@@ -43,12 +43,13 @@ import static java.util.stream.Collectors.joining;
 
 public class VisualizationController {
     private static final Logger LOGGER = Logger.getLogger(VisualizationController.class);
-    public static final Collection<LayoutAdapter<?>> POSSIBLE_LAYOUTS = Arrays.asList(
-                    new LayoutAdapter<>(LinLog::new, "LinLog"),
-                    new LayoutAdapter<>(SpringBox::new, "SpringBox"),
-                    new HierarchicalLayoutAdapter());
-    public static final Map<String, LayoutAdapter<?>> POSSIBLE_LAYOUTS_BY_NAME = POSSIBLE_LAYOUTS.stream()
-            .collect(Collectors.toMap(LayoutAdapter::getLayoutAlgorithmName, Function.identity()));
+    public static final Collection<LayoutMethod> POSSIBLE_LAYOUTS = Arrays.asList(
+            new LayoutAdapter<>(LinLog::new, "LinLog"),
+            new LayoutAdapter<>(SpringBox::new, "Fruchterman-Reingold"),
+            new HierarchicalLayoutAdapter(),
+            new CircularLayout());
+    public static final Map<String, LayoutMethod> POSSIBLE_LAYOUTS_BY_NAME = POSSIBLE_LAYOUTS.stream()
+            .collect(Collectors.toMap(LayoutMethod::getLayoutAlgorithmName, Function.identity()));
 
     public static final Map<String, LayoutMetric> METRICS_BY_NAME = new LinkedHashMap<>();
     public static final String EDGE_STYLESHEET = "edge { text-visibility-mode: hidden; text-visibility: 0.5;  }";
@@ -119,7 +120,7 @@ public class VisualizationController {
     private RadioButton chooseParametersButton;
 
     @FXML
-    private ChoiceBox<LayoutAdapter<?>> layoutAlgorithmChoiceBox;
+    private ChoiceBox<LayoutMethod> layoutAlgorithmChoiceBox;
 
     @FXML
     private RadioButton usePredefinedAlgorithmButton;
@@ -202,18 +203,18 @@ public class VisualizationController {
         ToggleGroup layoutToggleGroup = new ToggleGroup();
         usePredefinedAlgorithmButton.setToggleGroup(layoutToggleGroup);
         chooseLayoutAutomaticallyButton.setToggleGroup(layoutToggleGroup);
-        layoutAlgorithmChoiceBox.setConverter(new StringConverter<LayoutAdapter<?>>() {
+        layoutAlgorithmChoiceBox.setConverter(new StringConverter<LayoutMethod>() {
             @Override
-            public String toString(LayoutAdapter<?> object) {
+            public String toString(LayoutMethod object) {
                 return object.getLayoutAlgorithmName();
             }
 
             @Override
-            public LayoutAdapter<?> fromString(String string) {
+            public LayoutMethod fromString(String string) {
                 return POSSIBLE_LAYOUTS_BY_NAME.get(string);
             }
         });
-        for (LayoutAdapter<?> layout : POSSIBLE_LAYOUTS) {
+        for (LayoutMethod layout : POSSIBLE_LAYOUTS) {
             layoutAlgorithmChoiceBox.getItems().add(layout);
         }
         layoutAlgorithmChoiceBox.getSelectionModel().selectFirst();
