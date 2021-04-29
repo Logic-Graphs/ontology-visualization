@@ -43,13 +43,14 @@ public class MetricCombinations {
             "Графовая энтропия Хосойи", new HosoyaEntropyMetric(),
             "Энергия матрицы смежности", new AdjacencyMatrixEnergy()
     );
-    public static final ImmutableMap<String, LayoutMetric> LAYOUT_METRICS = ImmutableMap.of(
-            "Стандартное отклонение длин ребер", new EdgeLengthStd(),
-            "Минимальный угол между ребрами из одной вершины", new NodeAngleResolution(),
-            "Минимальный угол при пересечении ребер", new CrossingAngleResolution(),
-            "Количество пересечений ребер", new NumberOfCrossings(),
-            "Мера сходства с графом формы", new ShapeGraphSimilarity(5)
-    );
+    public static final ImmutableMap<String, LayoutMetric> LAYOUT_METRICS = ImmutableMap.<String, LayoutMetric>builder()
+            .put("Стандартное отклонение длин ребер", new EdgeLengthStd())
+            .put("Минимальный угол между ребрами из одной вершины", new NodeAngleResolution())
+            .put("Минимальный угол при пересечении ребер", new CrossingAngleResolution())
+            .put("Количество пересечений ребер", new NumberOfCrossings())
+            .put("Мера сходства с графом формы", new ShapeGraphSimilarity(5))
+            .put("Неравномерность распределения вершин", new NodeNonUniformity())
+            .build();
     public static final String STATS_CHART_TIME_LABEL = "Время вычисления, мс";
     private static final List<String> CONVERTERS_TABLE_HEADER = createConvertersTableHeader();
     private static final List<String> LAYOUTS_TABLE_HEADER = createLayoutsTableHeader();
