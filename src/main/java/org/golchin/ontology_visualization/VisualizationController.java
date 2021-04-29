@@ -61,6 +61,7 @@ public class VisualizationController {
         METRICS_BY_NAME.put("Node angle resolution", new NodeAngleResolution());
         METRICS_BY_NAME.put("Edge length standard deviation", new EdgeLengthStd());
         METRICS_BY_NAME.put("k-nearest neighbors shape graph similarity", new ShapeGraphSimilarity(5));
+        METRICS_BY_NAME.put("Node non-uniformity", new NodeNonUniformity());
     }
 
 

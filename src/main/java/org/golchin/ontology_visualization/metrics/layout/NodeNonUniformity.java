@@ -1,6 +1,5 @@
 package org.golchin.ontology_visualization.metrics.layout;
 
-import com.google.common.math.StatsAccumulator;
 import org.graphstream.graph.Graph;
 import org.graphstream.graph.Node;
 
@@ -10,23 +9,28 @@ import java.util.function.Function;
 
 import static org.golchin.ontology_visualization.metrics.MetricUtils.getMeanLength;
 
-public class EdgeLengthStd implements LayoutMetric {
+public class NodeNonUniformity implements LayoutMetric {
     @Override
     public double calculate(Graph graph, Function<Node, Point2D> vertexToPoint) {
         double meanLength = getMeanLength(graph, vertexToPoint);
-        StatsAccumulator statsAccumulator = new StatsAccumulator();
-        graph.edges().map(edge -> {
-            Point2D sourcePoint = vertexToPoint.apply(edge.getSourceNode());
-            Point2D destPoint = vertexToPoint.apply(edge.getTargetNode());
-            double distance = sourcePoint.distance(destPoint);
-            distance /= meanLength;
-            return distance;
-        }).forEach(statsAccumulator::add);
-        return statsAccumulator.populationStandardDeviation();
+        double total = 0.;
+        for (Node node : graph) {
+            for (Node otherNode : graph) {
+                if (node != otherNode) {
+                    Point2D point = vertexToPoint.apply(node);
+                    Point2D otherPoint = vertexToPoint.apply(otherNode);
+                    double distance = point.distance(otherPoint);
+                    distance /= meanLength;
+                    total += 1 / distance / distance;
+                }
+            }
+        }
+        return total;
     }
 
     @Override
     public Comparator<Double> getComparator() {
         return Comparator.<Double>naturalOrder().reversed();
     }
+
 }
