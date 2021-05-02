@@ -84,10 +84,12 @@ public class LayoutChooser {
                 prevMean = mean;
             }
             String metricName = layoutMetric.getClass().getSimpleName();
-            if (hasConverged) {
-                LOGGER.debug("Converged for layout " + layoutName + ", " + metricName + " after " + i + " iterations");
-            } else {
-                LOGGER.warn(String.format("Not converged for layout %s, metric %s, current ratio: %.4f", layoutName, metricName, meanChangeRatio));
+            if (!layoutAdapter.isDeterministic()) {
+                if (hasConverged) {
+                    LOGGER.debug("Converged for layout " + layoutName + ", " + metricName + " after " + i + " iterations");
+                } else {
+                    LOGGER.warn(String.format("Not converged for layout %s, metric %s, current ratio: %.4f", layoutName, metricName, meanChangeRatio));
+                }
             }
             variants.put(layoutName, new LayoutVariant(layoutName, bestLayout, bestMetric, metricValues));
         }
