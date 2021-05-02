@@ -20,8 +20,10 @@ public class NodeNonUniformity implements LayoutMetric {
                     Point2D point = vertexToPoint.apply(node);
                     Point2D otherPoint = vertexToPoint.apply(otherNode);
                     double distance = point.distance(otherPoint);
-                    distance /= meanLength;
-                    total += 1 / distance / distance;
+                    if (distance > 0) {
+                        distance /= meanLength;
+                        total += 1 / distance / distance;
+                    }
                 }
             }
         }
