@@ -24,7 +24,7 @@ import java.util.*;
 @SuppressWarnings("UnstableApiUsage")
 public class MetricCombinations {
     public static final NodeRemovingGraphSimplifier GRAPH_SIMPLIFIER = new NodeRemovingGraphSimplifier(0);
-    private static final Map<String, String> ONTOLOGY_URLS_BY_ID =
+    static final Map<String, String> ONTOLOGY_URLS_BY_ID =
             ImmutableMap.<String, String>builder()
                     .put("Dublin Core", "file:///home/roman/Downloads/dublin_core_terms.rdf")
                     .put("FOAF", "file:///home/roman/Downloads/index.rdf")
