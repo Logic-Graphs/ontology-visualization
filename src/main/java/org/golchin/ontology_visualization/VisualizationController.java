@@ -1,6 +1,7 @@
 package org.golchin.ontology_visualization;
 
 import com.google.common.collect.ImmutableMap;
+import com.mxgraph.layout.mxOrganicLayout;
 import javafx.beans.binding.BooleanBinding;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.concurrent.Task;
@@ -46,8 +47,8 @@ public class VisualizationController {
     public static final Collection<LayoutMethod> POSSIBLE_LAYOUTS = Arrays.asList(
             new LayoutAdapter<>(LinLog::new, "LinLog"),
             new LayoutAdapter<>(SpringBox::new, "Fruchterman-Reingold"),
-            new HierarchicalLayoutAdapter(),
-            new CircularLayout());
+            new MxLayoutMethod(true, "Davidson-Harel", mxOrganicLayout::new)
+    );
     public static final Map<String, LayoutMethod> POSSIBLE_LAYOUTS_BY_NAME = POSSIBLE_LAYOUTS.stream()
             .collect(Collectors.toMap(LayoutMethod::getLayoutAlgorithmName, Function.identity()));
 
