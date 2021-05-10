@@ -1,9 +1,10 @@
+package org.golchin.ontology_visualization;
+
 import com.google.common.collect.ImmutableMap;
 import com.google.common.math.Stats;
 import com.google.common.math.StatsAccumulator;
 import javafx.application.Platform;
 import javafx.util.Pair;
-import org.golchin.ontology_visualization.*;
 import org.golchin.ontology_visualization.metrics.*;
 import org.golchin.ontology_visualization.metrics.layout.*;
 import org.graphstream.graph.Graph;
@@ -30,6 +31,11 @@ public class MetricCombinations {
                     .put("SIOC", "file:///home/roman/Downloads/ns.rdf")
                     .put("Good Relations", "file:///home/roman/Downloads/v1.owl")
                     .put("MarineTLO", "file:///home/roman/Downloads/marinetlo.owl")
+                    .put("General Formal Ontology", "file:///home/roman/Downloads/gfo.owl")
+                    .put("Institutional Ontology", "file:///home/roman/Downloads/instOntology.owl")
+                    .put("MOD", "file:///home/roman/Downloads/mod-ontology-09092016.owl")
+                    .put("Library Ontology", "file:///home/roman/Downloads/Library%20Ontology.owl")
+                    .put("OntoViBe", "file:///home/roman/Downloads/ontovibe.ttl")
                     .build();
     public static final List<OntologyToGraphConverter> CONVERTERS =
             Arrays.asList(new OWLVizConverter(), new OntografConverter());
@@ -74,6 +80,8 @@ public class MetricCombinations {
     public static void main(String[] args) throws IOException {
         List<String> latexLines = new ArrayList<>();
         int nTrials = Integer.parseInt(args[0]);
+        Map<String, Integer> converterTotalCounts = new HashMap<>();
+        Map<String, Integer> layoutTotalCounts = new HashMap<>();
         for (Map.Entry<String, String> entry : ONTOLOGY_URLS_BY_ID.entrySet()) {
             String url = entry.getValue();
             System.out.println(url);
@@ -97,10 +105,14 @@ public class MetricCombinations {
                             convertersTable,
                             resultsByMetrics,
                             bestConvertersByMetric,
-                            ontologyDir);
+                            ontologyDir,
+                            layoutTotalCounts);
                 }
                 convertersTable.writeToCsv(ontologyDir.resolve("converters.csv"));
                 convertersTable.writeToLatex(ontologyDir.resolve("converters.tex"));
+                for (OntologyToGraphConverter converter : bestConvertersByMetric.values()) {
+                    converterTotalCounts.merge(converter.toString(), 1, Integer::sum);
+                }
 
                 writeResultsToTables(ontologyName, ontologyDir, resultsByMetrics, bestConvertersByMetric);
                 writeTimeStats(ontologyDir, timeStatsByGraphMetric, timeStatsByLayoutMetric);
@@ -126,6 +138,17 @@ public class MetricCombinations {
                 writer.newLine();
             }
         }
+        writeMap(converterTotalCounts, "converterTotalCounts.csv");
+        writeMap(layoutTotalCounts, "layoutTotalCounts.csv");
+    }
+
+    private static <K, V> void writeMap(Map<K, V> map, String filename) throws IOException {
+        try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(filename))) {
+            for (Map.Entry<K, V> entry : map.entrySet()) {
+                writer.write(entry.getKey() + "," + entry.getValue());
+                writer.newLine();
+            }
+        }
     }
 
     private static void writeTimeStats(Path ontologyDir,
@@ -144,7 +167,14 @@ public class MetricCombinations {
         layoutStatsVisualizer.writeToFile(chartPath, 800, 600);
     }
 
-    private static void doTrial(Map<String, StatsAccumulator> timeStatsByGraphMetric, Map<String, StatsAccumulator> timeStatsByLayoutMetric, OWLOntology ontology, Table convertersTable, Map<String, Map<String, List<EvaluatedLayout>>> experimentsByMetricCombinations, Map<String, OntologyToGraphConverter> bestConvertersByMetric, Path ontologyDir) throws IOException {
+    private static void doTrial(Map<String, StatsAccumulator> timeStatsByGraphMetric,
+                                Map<String, StatsAccumulator> timeStatsByLayoutMetric,
+                                OWLOntology ontology,
+                                Table convertersTable,
+                                Map<String, Map<String, List<EvaluatedLayout>>> experimentsByMetricCombinations,
+                                Map<String, OntologyToGraphConverter> bestConvertersByMetric,
+                                Path ontologyDir,
+                                Map<String, Integer> layoutTotalCounts) throws IOException {
         int rowIndex = 0;
         for (Map.Entry<String, GraphMetric> namedGraphMetric : GRAPH_METRICS.entrySet()) {
             String graphMetricName = namedGraphMetric.getKey();
@@ -170,6 +200,7 @@ public class MetricCombinations {
                 Pair<EvaluatedLayout, Double> layoutWithTime =
                         Util.measureTimeMillis(() -> chooseLayout(evaluatedGraph, layoutMetric));
                 EvaluatedLayout evaluatedLayout = layoutWithTime.getKey();
+                layoutTotalCounts.merge(evaluatedLayout.getLayoutName(), 1, Integer::sum);
                 experimentsByMetricCombinations.computeIfAbsent(graphMetricName, m -> new HashMap<>())
                         .computeIfAbsent(layoutMetricName, m -> new ArrayList<>())
                         .add(evaluatedLayout);
@@ -203,22 +234,34 @@ public class MetricCombinations {
                 List<EvaluatedLayout> layoutMetricTrials = layoutMetricToTrials.getValue();
                 LayoutMetricExperiment experiment =
                         new LayoutMetricExperiment(LAYOUT_METRICS.get(layoutMetricName), layoutMetricTrials);
-                for (Map.Entry<String, Stats> e : experiment.getStatsByLayout().entrySet()) {
+                Map<String, Stats> statsByLayout = experiment.getStatsByLayout();
+                String bestLayoutName = experiment.getBestLayoutName();
+//                layoutChoiceTable.setValue(HEADER_CHOSEN_LAYOUT, layoutRowIndex, bestLayoutName);
+                double bestMean = statsByLayout.get(bestLayoutName).mean();
+                for (Map.Entry<String, Stats> e : statsByLayout.entrySet()) {
                     String layout = e.getKey();
                     Stats stats = e.getValue();
                     double standardDeviation = stats.populationStandardDeviation();
                     String formattedMetricValue;
                     double mean = stats.mean();
+                    double ratio = standardDeviation / mean;
+                    if (ratio > 0.5) {
+                        System.out.println("ratio " + ratio + " " + mean + " " + standardDeviation + " " + ontologyName + " " + bestConverter.toString() + " " + layoutMetricName);
+                    }
                     String formattedMean = formatDouble(mean);
                     if (standardDeviation > 0) {
                         formattedMetricValue = formattedMean + " \\pm " + formatDouble(standardDeviation);
                     } else {
                         formattedMetricValue = formattedMean;
                     }
-                    layoutChoiceTable.setValue(HEADER_METRIC_VALUE + layout, layoutRowIndex, "$ " + formattedMetricValue + " $");
+                    if (experiment.getBestLayoutName().equals(layout)) {
+                        layoutChoiceTable.setValue(HEADER_METRIC_VALUE + e.getKey(), layoutRowIndex, "$ \\mathbf{" + formattedMetricValue + "} $");
+                    } else {
+                        layoutChoiceTable.setValue(HEADER_METRIC_VALUE + layout, layoutRowIndex, "$ " + formattedMetricValue + " $");
+                    }
                 }
                 layoutChoiceTable.setValue(HEADER_METRIC, layoutRowIndex, layoutMetricName);
-                layoutChoiceTable.setValue(HEADER_CHOSEN_LAYOUT, layoutRowIndex, experiment.getBestLayoutName());
+//                layoutChoiceTable.setValue(HEADER_CHOSEN_LAYOUT, layoutRowIndex, experiment.getBestLayoutName());
                 layoutRowIndex++;
             }
             String layoutChoiceFileName = bestConverter + "_layouts";
@@ -231,18 +274,25 @@ public class MetricCombinations {
         String result = number.toString();
         int eIndex = result.indexOf("E");
         if (eIndex < 0) {
-            return result;
+            return Util.stripTrailingZeros(result);
         }
         String coefficient = result.substring(0, eIndex);
-        return coefficient + " \\times 10^{" + result.substring(eIndex + 1) + "}";
+        return Util.stripTrailingZeros(coefficient) + " \\times 10^{" + result.substring(eIndex + 1) + "}";
     }
 
     private static String formatDouble(double d) {
-        double rounded = roundDoubleUpToNPlaces(d, 3);
-        return latexScientificNotation(rounded);
+        if (d >= 0.005) {
+            return Util.formatUpToNPlaces(d, 2);
+        }
+        return Util.formatUpToNPlaces(d, 3);
     }
 
-    private static double roundDoubleUpToNPlaces(double d, int n) {
+    private static double roundUpToNPlaces(double d, int n) {
+        double pow = Math.pow(10, n);
+        return Math.round(d * pow) / pow;
+    }
+
+    private static double roundUpToNSignificantDigits(double d, int n) {
         n -= Math.floor(Math.log10(d)) + 1;
         double power = Math.pow(10, n);
         return (double) Math.round(d * power) / power;
@@ -254,7 +304,7 @@ public class MetricCombinations {
         for (String layout : VisualizationController.POSSIBLE_LAYOUTS_BY_NAME.keySet()) {
             layoutTableHeader.add(HEADER_METRIC_VALUE + layout);
         }
-        layoutTableHeader.add(HEADER_CHOSEN_LAYOUT);
+//        layoutTableHeader.add(HEADER_CHOSEN_LAYOUT);
         return layoutTableHeader;
     }
 

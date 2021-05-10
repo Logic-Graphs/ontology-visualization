@@ -1,3 +1,5 @@
+package org.golchin.ontology_visualization;
+
 import com.google.common.math.StatsAccumulator;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartUtils;
