@@ -41,6 +41,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.joining;
+import static org.golchin.ontology_visualization.Util.formatUpToNPlaces;
 
 public class VisualizationController {
     private static final Logger LOGGER = Logger.getLogger(VisualizationController.class);
@@ -353,6 +354,13 @@ public class VisualizationController {
                 executorService.submit(task);
                 task.setOnSucceeded(event -> {
                     Graph graph = (Graph) event.getSource().getValue();
+                    appendToLog("Using converter " + converterChoiceBox.getValue().toString());
+                    for (Map.Entry<String, GraphMetric> nameToMetric : GRAPH_METRICS_BY_NAME.entrySet()) {
+                        GraphMetric metric = nameToMetric.getValue();
+                        double value = metric.calculate(graph);
+                        String message = String.format("Value of metric '%s' is %.3f", nameToMetric.getKey(), value);
+                        appendToLog(message);
+                    }
                     setGraph(graph);
                     graphSaver.saveGraph(graph, url, settings);
                 });
@@ -373,9 +381,9 @@ public class VisualizationController {
         Map<OntologyToGraphConverter, Double> metricValuesByConverters = evaluatedGraph.getMetricValuesByConverters();
         for (Map.Entry<OntologyToGraphConverter, Double> entry : metricValuesByConverters.entrySet()) {
             OntologyToGraphConverter converter = entry.getKey();
-            appendToLog(String.format("Value of metric with converter %s: %.3f",
+            appendToLog(String.format("Value of metric with converter %s: %s",
                     converter,
-                    entry.getValue()));
+                    formatUpToNPlaces(entry.getValue(), 3)));
         }
         OntologyToGraphConverter bestConverter = evaluatedGraph.getBestConverter();
         appendToLog("Chose " + bestConverter);
@@ -408,8 +416,8 @@ public class VisualizationController {
             String name = evaluatedLayout.getLayoutName();
             String summary = evaluatedLayout.getVariants().entrySet()
                     .stream()
-                    .map(metricNameToValue -> "Average value of metric for " + metricNameToValue.getKey() +
-                            ": " + metricNameToValue.getValue().getAverageMetricValue())
+                    .map(metricNameToValue -> "Average value of metric for " + metricNameToValue.getKey() + ": " +
+                            formatUpToNPlaces(metricNameToValue.getValue().getAverageMetricValue(), 3))
                     .collect(joining("\n", "", "\nChose " + name));
             appendToLog(summary);
             layoutGraph = evaluatedLayout.getBestLayout();
@@ -420,6 +428,15 @@ public class VisualizationController {
     }
 
     private void visualize(Graph layoutGraph) {
+        if (usePredefinedAlgorithmButton.isSelected()) {
+            appendToLog("Using layout " + layoutAlgorithmChoiceBox.getValue().getLayoutAlgorithmName());
+            for (Map.Entry<String, LayoutMetric> nameToMetric : METRICS_BY_NAME.entrySet()) {
+                LayoutMetric layoutMetric = nameToMetric.getValue();
+                double value = layoutMetric.calculate(layoutGraph, LayoutChooser.NODE_POSITION_GETTER);
+                String message = String.format("Value of metric '%s' is %.3f", nameToMetric.getKey(), value);
+                appendToLog(message);
+            }
+        }
         layoutGraph.setAttribute("ui.stylesheet", GRAPH_STYLESHEET);
         FxViewer fxViewer = new FxViewer(layoutGraph, Viewer.ThreadingModel.GRAPH_IN_GUI_THREAD);
         FxViewPanel panel = (FxViewPanel) fxViewer.addDefaultView(false);
