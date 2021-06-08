@@ -76,6 +76,9 @@ public class PanningMouseManager extends FxMouseOverMouseManager {
                         if (annotations != null) {
                             this.text.getChildren().clear();
                             this.text.getChildren().add(titleAndDescriptionText);
+                            Hyperlink iri = createBrowserLink(node.getId(), node.getId());
+                            this.text.getChildren().add(iri);
+                            this.text.getChildren().add(new Text("\n"));
                             this.text.getChildren().addAll(createTextFromAnnotations(annotations));
                         }
                     }
